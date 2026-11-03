@@ -101,6 +101,17 @@
         </field>
     </record>
 
+    <record id="view_ai_translation_watch_form_parallel" model="ir.ui.view">
+        <field name="name">ai.translation.watch.form.parallel</field>
+        <field name="model">ai.translation.watch</field>
+        <field name="inherit_id" ref="view_ai_translation_watch_form"/>
+        <field name="arch" type="xml">
+            <field name="max_units_per_run" position="after">
+                <field name="parallel_groups"/>
+            </field>
+        </field>
+    </record>
+
     <record id="action_ai_translation_watch" model="ir.actions.act_window">
         <field name="name">Rules</field>
         <field name="res_model">ai.translation.watch</field>

@@ -2,15 +2,21 @@
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
 import logging
 import time
+from concurrent.futures import ThreadPoolExecutor
+from itertools import zip_longest
+
+from dateutil.relativedelta import relativedelta
 
 from odoo import _, api, fields, models
 from odoo.exceptions import UserError
+
+from odoo.addons.base.models.ir_cron import MIN_TIME_PER_JOB
 
 from ..engine import checks, pipeline
 
 _logger = logging.getLogger(__name__)
 
-MIN_CRON_SECONDS_LEFT = 150     # a provider call may take up to its timeout
+CRON_JOB_SECONDS = 40           # stop starting groups; a cron worker is killed after limit_time_real (120 s)
 CTX_CHARS = 240
 OPEN_STATES = ("new", "review", "consensus", "failed")
 
@@ -204,59 +210,130 @@ class AiTranslationUnit(models.Model):
         return done
 
     @api.model
+    def _cron_quota(self, watch, cron):
+        """Texts the rule may still process in the current cron interval (0 = no limit)."""
+        if watch.max_units_per_run <= 0:
+            return 10 ** 9
+        since = fields.Datetime.now() - relativedelta(**{cron.interval_type: cron.interval_number})
+        used = self.search_count([("watch_id", "=", watch.id), ("processed_at", ">=", since)])
+        return max(watch.max_units_per_run - used, 0)
+
+    @api.model
     def _cron_process(self):
-        watches = self.env["ai.translation.watch"].search([("auto_scan", "=", True)])
-        for watch in watches:
-            units = self.search([("watch_id", "=", watch.id), ("state", "=", "new")],
-                                order="id", limit=watch.max_units_per_run)
-            for group in self._group_units(units, watch.batch_size):
-                handled = group._process_group()
-                remaining = self.env["ir.cron"]._commit_progress(handled)
-                if remaining < MIN_CRON_SECONDS_LEFT:
-                    return
+        """Process a batch of groups in parallel and report what is left, so Odoo calls again at once.
+
+        The groups of all rules are taken in turns; as many run side by side as the rules allow
+        (``parallel_groups``). Providers are only waited for in threads, everything that touches the
+        database stays in this thread. Each rule handles at most ``max_units_per_run`` texts per
+        cron interval. The job ends itself after ``CRON_JOB_SECONDS`` and is rescheduled at once,
+        which keeps every job well below the cron worker's time limit.
+        """
+        cron = self.env.ref("ai_translation_consensus.ir_cron_ai_translation", raise_if_not_found=False)
+        if not cron:
+            return
+        queues, remaining = [], 0
+        for watch in self.env["ai.translation.watch"].search([("auto_scan", "=", True)]):
+            quota = self._cron_quota(watch, cron)
+            domain = [("watch_id", "=", watch.id), ("state", "=", "new")]
+            count = min(self.search_count(domain), quota) if quota else 0
+            if count:
+                remaining += count
+                width = watch._parallel_groups() * (watch.batch_size or 10) * 3
+                units = self.search(domain, order="id", limit=min(quota, width))
+                queues.append((watch, self._group_units(units, watch.batch_size)))
+        job_end = self.env.context.get("cron_end_time")
+        job_seconds = time.monotonic() - (job_end - MIN_TIME_PER_JOB) if job_end else 0
+        if not remaining or job_seconds > CRON_JOB_SECONDS:
+            self.env["ir.cron"]._commit_progress(remaining=remaining)
+            return
+        width = max(w._parallel_groups() for w, _groups in queues)
+        turns = zip_longest(*[groups for _watch, groups in queues])
+        batch = [g for turn in turns for g in turn if g][:width]
+        handled = self._process_groups_parallel(batch)
+        # Nothing handled (no usable provider, rows locked): stop, or the job would restart in a loop.
+        self.env["ir.cron"]._commit_progress(handled, remaining=max(remaining - handled, 0) if handled else 0)
+
+    @api.model
+    def _process_groups_parallel(self, groups):
+        """Prepare the groups, wait for all providers side by side, store the results one by one."""
+        handled, jobs = 0, []
+        for group in groups:
+            settled, job = group._prepare_group()
+            handled += settled
+            if job:
+                jobs.append(job)
+        if jobs:
+            with ThreadPoolExecutor(max_workers=len(jobs)) as pool:
+                outcomes = list(pool.map(self._run_job, jobs))
+            for job, outcome in zip(jobs, outcomes):
+                if outcome is not None:
+                    handled += job["group"]._finish_group(job, *outcome)
+        return handled
 
     def _process_group(self):
         """Run the providers for units of one record and language. Returns units handled."""
+        return self._process_groups_parallel([self])
+
+    def _prepare_group(self):
+        """Everything before the providers are called. Returns ``(units settled, job or None)``."""
         units = self._lock_new()
         if not units:
-            return 0
+            return 0, None
         first = units[0]
         watch = first.watch_id
         rec = self.env[first.model_name].sudo().browse(first.res_id).exists()
         if not rec:
             units.write({"state": "stale", "error": _("The record does not exist any more.")})
-            return len(units)
+            return len(units), None
         fresh = units.filtered(lambda u: u._source_is_current(rec))
         (units - fresh).write({"state": "stale", "error": _("The source text changed meanwhile.")})
         if not fresh:
-            return len(units)
+            return len(units), None
         fresh = fresh.with_context(ai_translation_defer_check=True)
         translators, reviewers = watch._pick_providers()
         if not translators:
             _logger.warning("AI translation rule %s: no usable provider, %s units stay queued",
                             watch.name, len(fresh))
-            return 0
+            return 0, None
         items = [{"id": str(u.id), "text": u.source_text, "before": u.ctx_before or "",
                   "after": u.ctx_after or ""} for u in fresh]
         texts = [i["text"] for i in items]
-        glossary = self.env["ai.translation.glossary"]._lines_for(first.lang, texts)
-        page = self._page_context(rec, watch, texts)
         prompt_src, prompt_tgt = watch._prompt_langs(first.source_lang, first.lang)
+        return len(units) - len(fresh), {
+            "group": self, "units": units, "fresh": fresh, "watch": watch, "lang": first.lang,
+            "translators": translators, "reviewers": reviewers,
+            "args": (watch.kind, prompt_src, prompt_tgt, items, translators, reviewers),
+            "kwargs": dict(
+                glossary=self.env["ai.translation.glossary"]._lines_for(first.lang, texts),
+                instructions=watch.instructions or "", page_context=self._page_context(rec, watch, texts),
+                threshold=watch.threshold, min_score=watch.min_score, max_rounds=watch.max_rounds,
+                exclude_self=watch.exclude_self, review_unanimous=watch.review_unanimous),
+        }
+
+    @staticmethod
+    def _run_job(job):
+        """The provider calls of one group. No ORM here: this runs in a thread."""
         started = time.monotonic()
-        results = pipeline.process(
-            watch.kind, prompt_src, prompt_tgt, items, translators, reviewers,
-            glossary=glossary, instructions=watch.instructions or "", page_context=page,
-            threshold=watch.threshold, min_score=watch.min_score, max_rounds=watch.max_rounds,
-            exclude_self=watch.exclude_self, review_unanimous=watch.review_unanimous)
+        try:
+            results = pipeline.process(*job["args"], **job["kwargs"])
+        except Exception:  # noqa: BLE001 - one broken group must not take the others down
+            _logger.exception("AI translation rule %s: group failed, its units stay queued",
+                              job["watch"].name)
+            return None
+        return results, time.monotonic() - started
+
+    def _finish_group(self, job, results, elapsed):
+        """Store what the providers returned. Returns units handled."""
+        fresh, watch = job["fresh"], job["watch"]
         errors = results.pop("__errors__", {})
-        elapsed = time.monotonic() - started
         for unit in fresh:
             unit._store_result(results[str(unit.id)], errors, watch)
         fresh.write({"processed_at": fields.Datetime.now(), "process_seconds": elapsed / len(fresh)})
-        self.env["ai.translation.usage"]._log(watch, translators + reviewers, first.lang, len(fresh))
+        self.env["ai.translation.usage"]._log(
+            watch, job["translators"] + job["reviewers"], job["lang"], len(fresh))
         (fresh.filtered(lambda u: u.state == "consensus" and watch.auto_apply))._apply_all(auto=True)
         watch._check_completion()
-        return len(units)
+        return len(fresh)
 
     def _page_context(self, rec, watch, texts):
         src = self[0].source_lang

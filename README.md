@@ -72,9 +72,8 @@ What has been verified:
 * End to end against real services, with the full pipeline: Pollinations, MyMemory and the
   Claude Code CLI (keyless / signed-in).
 * The HTTP adapters of every other kind against a local mock server (request shape,
-  headers, error handling, retries, secret masking). They have **not** been run against
-  the vendors' live APIs in this repository's test suite; if one of the presets needs a
-  correction, please open an issue or a pull request.
+  headers, error handling, retries, secret masking). The test suite does not call the vendors'
+  live APIs; if one of the presets needs a correction, please open an issue or a pull request.
 
 ## Installation
 
@@ -136,6 +135,13 @@ decision, queued or failed, per language and per provider, and refreshes itself 
 * Rules with **Start by itself when a record changes** search only records changed since their
   last full scan when the cron runs and process the new texts; with the cron switched on an
   edited web page is translated again without anybody pressing a button.
+* The cron processes several groups of texts (one record, one language each) **at the same time**:
+  *Groups processed at the same time* on the rule (default 6) sets how many, and when several rules
+  are queued they take turns. Odoo calls the cron again at once while work is left. *Proposals
+  processed per cron run* limits the texts per rule and cron interval; 0 means no limit, which is
+  what you want when your API accounts have generous quotas. Every job ends itself after about
+  40 seconds and is rescheduled, so it stays below the cron worker's time limit. Raise the number of
+  parallel groups only as far as the rate limits of your accounts allow.
 * When the last open text of a rule is finished, a message **"All languages translated"**
   (proofreading: "All texts proofread") is posted once in the channel *AI Translation* by the bot.
   Members of the reviewer group are subscribed automatically; the message is posted again after
@@ -178,7 +184,7 @@ odoo-bin -d <test-db> -i ai_translation_consensus,ai_translation_consensus_websi
 The suite covers the checks, the consensus maths, the pipeline with scripted providers,
 every HTTP adapter against a local mock server, the Odoo flow (scan, process, approve,
 stale sources, term and plain fields, proofreading, confidential rules), token and cost accounting,
-the dashboard figures and forecast, the completion message and the whole-website wizard.
+the cron with parallel groups, the dashboard figures and forecast, the completion message and the whole-website wizard.
 
 ## Limits
 

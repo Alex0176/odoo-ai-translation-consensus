@@ -1,11 +1,15 @@
 # Copyright 2026 Biricon IT Services GmbH
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
+import threading
+import time
 from unittest.mock import patch
 
+from odoo.addons.base.models.ir_cron import MIN_TIME_PER_JOB
 from odoo.exceptions import UserError
 from odoo.tests.common import TransactionCase, tagged
 
 from .. import providers
+from ..engine import pipeline
 from ..providers.base import ChatProvider
 from ..providers.http import ProviderError
 
@@ -14,6 +18,7 @@ class ScriptedChat(ChatProvider):
     """Registers as kind 'scripted'; answers from ``cfg['extra']['script']``."""
 
     kind = "scripted"
+    barrier = None
     label = "Scripted (tests)"
     needs_key = False
     defaults = {}
@@ -21,6 +26,9 @@ class ScriptedChat(ChatProvider):
     def generate(self, kind, src, tgt, items, glossary=(), instructions="", page_context=""):
         if self.extra.get("fail"):
             raise ProviderError("down")
+        if self.extra.get("barrier"):
+            # only passes when that many groups reach the provider at the same moment
+            ScriptedChat.barrier.wait(timeout=5)
         self._record(calls=1, input_tokens=100, output_tokens=40)
         table = self.extra.get("table", {})
         ScriptedChat.last_context = page_context
@@ -387,6 +395,103 @@ class TestModels(TransactionCase):
         self.partner_cat.name = "Machinery"
         self.assertEqual(watch._scan(full=False), 1)
         self.assertEqual(len(watch.unit_ids), 2)
+
+    def _cron_setup(self, count=3, **watch_vals):
+        self.env["ai.translation.watch"].search([]).write({"auto_scan": False})
+        names = ["Alpha", "Beta", "Gamma", "Delta"][:count]
+        cats = self.env["res.partner.category"].create([{"name": n} for n in names])
+        self.table = {n: n + "-de" for n in names}
+        self._provider("one")
+        self._provider("two")
+        watch_vals.setdefault("parallel_groups", 1)
+        watch = self._watch(domain="[('id', 'in', %s)]" % cats.ids, auto_scan=True, batch_size=1,
+                            **watch_vals)
+        watch._scan()
+        return watch
+
+    def _cron_calls(self, **context):
+        """Run ``_cron_process`` once and return the progress it reported."""
+        reported = []
+
+        def commit(model, processed=0, *, remaining=None, deactivate=False):
+            reported.append((processed, remaining))
+            return float("inf")
+
+        with patch.object(type(self.env["ir.cron"]), "_commit_progress", commit):
+            self.env["ai.translation.unit"].with_context(**context)._cron_process()
+        return reported
+
+    def test_cron_does_one_group_per_call_and_reports_what_is_left(self):
+        watch = self._cron_setup()
+        self.assertEqual(self._cron_calls(), [(1, 2)])
+        self.assertEqual(self._cron_calls(), [(1, 1)])
+        self.assertEqual(self._cron_calls(), [(1, 0)])
+        self.assertEqual(self._cron_calls(), [(0, 0)])
+        self.assertEqual(set(watch.unit_ids.mapped("state")), {"consensus"})
+
+    def test_cron_runs_groups_side_by_side(self):
+        ScriptedChat.barrier = threading.Barrier(3)
+        self.addCleanup(setattr, ScriptedChat, "barrier", None)
+        self.env["ai.translation.watch"].search([]).write({"auto_scan": False})
+        names = ["Alpha", "Beta", "Gamma"]
+        cats = self.env["res.partner.category"].create([{"name": n} for n in names])
+        self.table = {n: n + "-de" for n in names}
+        self._provider("gate", barrier=True)
+        self._provider("two")
+        watch = self._watch(domain="[('id', 'in', %s)]" % cats.ids, auto_scan=True, batch_size=1,
+                            parallel_groups=3)
+        watch._scan()
+        # the barrier only opens when three groups wait in the provider at once
+        self.assertEqual(self._cron_calls(), [(3, 0)])
+        self.assertEqual(set(watch.unit_ids.mapped("state")), {"consensus"})
+        self.assertEqual(sorted(watch.unit_ids.mapped("final_text")), ["Alpha-de", "Beta-de", "Gamma-de"])
+
+    def test_cron_takes_the_rules_in_turns(self):
+        first = self._cron_setup(count=3, parallel_groups=2)
+        cats = self.env["res.partner.category"].create([{"name": "Delta"}, {"name": "Epsilon"}])
+        self.table.update({"Delta": "Delta-de", "Epsilon": "Epsilon-de"})
+        second = self._watch(domain="[('id', 'in', %s)]" % cats.ids, auto_scan=True, batch_size=1,
+                              parallel_groups=2)
+        second._scan()
+        self._cron_calls()
+        self.assertEqual((len(first.unit_ids.filtered(lambda u: u.state != "new")),
+                          len(second.unit_ids.filtered(lambda u: u.state != "new"))), (1, 1))
+
+    def test_a_failing_group_does_not_stop_the_others(self):
+        watch = self._cron_setup(parallel_groups=3)
+        real = pipeline.process
+        calls = []
+
+        def flaky(*args, **kwargs):
+            calls.append(1)
+            if len(calls) == 1:
+                raise RuntimeError("bug")
+            return real(*args, **kwargs)
+
+        with patch("odoo.addons.ai_translation_consensus.models.ai_translation_unit.pipeline.process", flaky):
+            self.assertEqual(self._cron_calls(), [(2, 1)])
+        self.assertEqual(sorted(watch.unit_ids.mapped("state")), ["consensus", "consensus", "new"])
+
+    def test_cron_stops_at_the_quota_of_the_interval(self):
+        watch = self._cron_setup(max_units_per_run=2)
+        self.assertEqual(self._cron_calls(), [(1, 1)])
+        self.assertEqual(self._cron_calls(), [(1, 0)])
+        self.assertEqual(self._cron_calls(), [(0, 0)])
+        self.assertEqual(sorted(watch.unit_ids.mapped("state")), ["consensus", "consensus", "new"])
+
+    def test_cron_without_provider_stops_instead_of_looping(self):
+        self.env["ai.translation.provider"].search([]).write({"active": False})
+        self.env["ai.translation.watch"].search([]).write({"auto_scan": False})
+        watch = self._watch(auto_scan=True)
+        watch._scan()
+        self.assertEqual(self._cron_calls(), [(0, 0)])
+        self.assertEqual(watch.unit_ids.state, "new")
+
+    def test_cron_job_ends_itself_after_its_time_budget(self):
+        watch = self._cron_setup()
+        started_long_ago = time.monotonic() - 100 + MIN_TIME_PER_JOB
+        self.assertEqual(self._cron_calls(cron_end_time=started_long_ago), [(0, 3)])
+        self.assertEqual(set(watch.unit_ids.mapped("state")), {"new"})
 
     def test_only_managers_switch_the_schedule(self):
         Watch = self.env["ai.translation.watch"]

@@ -1148,6 +1148,21 @@ msgid "Proposals processed per cron run"
 msgstr "Vorschläge je Cron-Lauf"
 
 #. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_watch__parallel_groups
+msgid "Groups processed at the same time"
+msgstr "Gruppen gleichzeitig"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_watch__parallel_groups
+msgid "The scheduled action sends this many groups (texts of one record in one language) to the providers at once. Higher is faster and hits the providers' rate limits sooner; 1 = one after the other."
+msgstr "Die geplante Aktion schickt so viele Gruppen (Texte eines Datensatzes in einer Sprache) gleichzeitig an die Anbieter. Mehr ist schneller und stößt früher an die Ratenlimits der Anbieter; 1 = eine nach der anderen."
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_watch__max_units_per_run
+msgid "Per rule and cron interval. 0 = no limit."
+msgstr "Je Regel und Cron-Intervall. 0 = keine Begrenzung."
+
+#. module: ai_translation_consensus
 #: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_wizard__provider_status
 msgid "Provider Status"
 msgstr "Anbieterstatus"

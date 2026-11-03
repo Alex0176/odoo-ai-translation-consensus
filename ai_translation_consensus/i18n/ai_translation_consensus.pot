@@ -1416,6 +1416,21 @@ msgid "Proposals processed per cron run"
 msgstr ""
 
 #. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_watch__parallel_groups
+msgid "Groups processed at the same time"
+msgstr ""
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_watch__parallel_groups
+msgid "The scheduled action sends this many groups (texts of one record in one language) to the providers at once. Higher is faster and hits the providers' rate limits sooner; 1 = one after the other."
+msgstr ""
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_watch__max_units_per_run
+msgid "Per rule and cron interval. 0 = no limit."
+msgstr ""
+
+#. module: ai_translation_consensus
 #. odoo-javascript
 #: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.xml:0
 #: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_usage__provider_id

@@ -74,7 +74,14 @@ class AiTranslationWatch(models.Model):
                                    help="How much of the surrounding page text each provider sees.")
     max_records = fields.Integer(string="Records per scan", default=500)
     max_new_units = fields.Integer(string="New proposals per scan", default=300)
-    max_units_per_run = fields.Integer(string="Proposals processed per cron run", default=50)
+    max_units_per_run = fields.Integer(
+        string="Proposals processed per cron run", default=50,
+        help="Per rule and cron interval. 0 = no limit.")
+    parallel_groups = fields.Integer(
+        string="Groups processed at the same time", default=6,
+        help="The scheduled action sends this many groups (texts of one record in one language) "
+             "to the providers at once. Higher is faster and hits the providers' rate limits "
+             "sooner; 1 = one after the other.")
     scan_cursor = fields.Integer(readonly=True, copy=False)
     last_scan = fields.Datetime(readonly=True, copy=False)
     scan_since = fields.Datetime(readonly=True, copy=False,
@@ -122,6 +129,10 @@ class AiTranslationWatch(models.Model):
         self.field_ids = False
 
     # ------------------------------------------------------------ providers
+    def _parallel_groups(self):
+        self.ensure_one()
+        return max(self.parallel_groups or 6, 1)
+
     def _pick_providers(self):
         """Return ``(translators, reviewers)`` as provider objects."""
         self.ensure_one()
@@ -346,7 +357,7 @@ class AiTranslationWatch(models.Model):
         avg_seconds = Unit._read_group([("watch_id", "=", self.id), ("process_seconds", ">", 0)], [],
                                        ["process_seconds:avg"])[0][0] or 0.0
         remaining_seconds = queued * avg_seconds
-        per_run = max(self.max_units_per_run, 1)
+        per_run = self.max_units_per_run if self.max_units_per_run > 0 else max(queued, 1)
         cron = self.env.ref("ai_translation_consensus.ir_cron_ai_translation", raise_if_not_found=False)
         cron = cron.sudo() if cron else cron
         cron_active = bool(cron and cron.active and self.auto_scan)
@@ -355,7 +366,9 @@ class AiTranslationWatch(models.Model):
             interval = {"minutes": 60, "hours": 3600, "days": 86400, "weeks": 604800,
                         "months": 2592000}.get(cron.interval_type, 60) * cron.interval_number
             runs = -(-queued // per_run)
-            schedule_seconds = max(runs - 1, 0) * interval + min(queued, per_run) * avg_seconds
+            # the scheduled action works several groups at once, a measured text took avg_seconds alone
+            schedule_seconds = (max(runs - 1, 0) * interval
+                                + min(queued, per_run) * avg_seconds / self._parallel_groups())
         last = Unit.search([("watch_id", "=", self.id), ("processed_at", "!=", False)],
                            order="processed_at desc", limit=1)
         remaining_cost = per_unit_cost * queued
