@@ -211,6 +211,64 @@ class TestModels(TransactionCase):
             watch.unit_ids._process_group()
         self.assertEqual(seen, [("de_DE", "de_DE")])
 
+    def _wizard(self, **vals):
+        values = {
+            "model_id": self.env["ir.model"]._get("res.partner.category").id,
+            "domain": "[('id', '=', %d)]" % self.partner_cat.id, "field_ids": [(6, 0, self.field.ids)],
+            "source_lang_id": self.env.ref("base.lang_en").id, "target_lang_ids": [(6, 0, self.de.ids)],
+        }
+        values.update(vals)
+        return self.env["ai.translation.wizard"].create(values)
+
+    def test_wizard_steps_and_validation(self):
+        wiz = self.env["ai.translation.wizard"].create({})
+        self.assertEqual(wiz.step, "intro")
+        wiz.action_next()
+        self.assertEqual(wiz.step, "what")
+        with self.assertRaises(UserError):
+            wiz.action_next()  # no model chosen
+        wiz = self._wizard()
+        wiz.step = "what"
+        wiz.action_next()
+        wiz.action_next()
+        self.assertEqual(wiz.step, "done")
+        wiz.action_back()
+        self.assertEqual(wiz.step, "who")
+        wiz = self._wizard(target_lang_ids=[(5,)])
+        wiz.step = "what"
+        with self.assertRaises(UserError):
+            wiz.action_next()  # translating needs a target language
+
+    def test_wizard_creates_a_safe_rule_and_scans(self):
+        self._provider("one")
+        self._provider("two")
+        wiz = self._wizard(instructions="Formal")
+        wiz.step = "done"
+        self.assertIn("one", wiz.summary)
+        self.assertIn("two", wiz.summary)
+        action = wiz.action_create()
+        watch = self.env["ai.translation.watch"].search([("instructions", "=", "Formal")])
+        self.assertEqual(len(watch), 1)
+        self.assertFalse(watch.auto_apply)
+        self.assertFalse(watch.auto_scan)
+        self.assertEqual(watch.target_lang_ids, self.de)
+        self.assertEqual(action["res_model"], "ai.translation.unit")
+        self.assertEqual(len(watch.unit_ids), 1)
+
+    def test_wizard_blocks_creation_without_provider(self):
+        wiz = self._wizard()
+        wiz.step = "done"
+        self.assertIn("No usable provider", wiz.summary)
+        with self.assertRaises(UserError):
+            wiz.action_create()
+        self.assertFalse(self.env["ai.translation.watch"].search([("model_id", "=", wiz.model_id.id)]))
+
+    def test_wizard_language_shortcuts(self):
+        wiz = self._wizard()
+        wiz.action_all_languages()
+        self.assertNotIn(self.env.ref("base.lang_en"), wiz.target_lang_ids)
+        self.assertIn(self.fr, wiz.target_lang_ids)
+
     def test_rule_validation(self):
         with self.assertRaises(Exception):
             self._watch(domain="not a domain")

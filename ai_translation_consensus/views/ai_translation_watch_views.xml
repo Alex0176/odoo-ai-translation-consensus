@@ -105,5 +105,14 @@
         <field name="name">Rules</field>
         <field name="res_model">ai.translation.watch</field>
         <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No rules yet</p>
+            <p>
+                A rule says which records and fields are translated or proofread, in which languages,
+                by which providers. The easiest way to create one is <i>Start here</i> in the menu,
+                which explains each step. Rules do nothing on their own until you press
+                <i>Scan now</i> / <i>Process one batch</i> or switch on the scheduled action.
+            </p>
+        </field>
     </record>
 </odoo>

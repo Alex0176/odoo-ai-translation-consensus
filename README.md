@@ -88,6 +88,9 @@ Needs Odoo 19 and the Python package `requests`. German translation included.
 
 ## Quick start
 
+The menu **AI Translation ▸ Start here** opens a wizard that explains the steps and creates the
+first rule. By hand:
+
 1. *AI Translation ▸ Providers*: activate and test the services you want to use.
 2. *AI Translation ▸ Glossary* (optional): fixed terms and names.
 3. *AI Translation ▸ Rules*: choose the model, a domain, the fields, the source language

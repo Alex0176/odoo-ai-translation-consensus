@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_ai_translation_wizard_form" model="ir.ui.view">
+        <field name="name">ai.translation.wizard.form</field>
+        <field name="model">ai.translation.wizard</field>
+        <field name="arch" type="xml">
+            <form>
+                <field name="step" widget="statusbar" class="mb-3"/>
+                <field name="model_name" invisible="1"/>
+
+                <div invisible="step != 'intro'">
+                    <h3>Several AIs work on your texts and check each other</h3>
+                    <p>
+                        This module translates texts into other languages or proofreads them in their own
+                        language. Several language models and translation services work on the same text,
+                        then rate each other's results anonymously. A result only counts as agreed when
+                        enough of them prefer it. Everything else waits for a human.
+                    </p>
+                    <h4>How you work with it</h4>
+                    <ol>
+                        <li><b>Providers</b> (menu Providers): switch on the services you want. Free ones
+                            need no key; for the others enter your key, press <i>Test connection</i> and
+                            activate. Two or more providers give a real cross-check.</li>
+                        <li><b>Rule</b> (this wizard creates it): which records and fields, which languages,
+                            which providers, and which hints (tone, subject area, names that stay as they are).</li>
+                        <li><b>Search</b>: the rule lists the texts that still need work as proposals. Nothing
+                            is sent to a provider yet, so this is free.</li>
+                        <li><b>Process</b>: on the rule press <i>Process one batch</i> (repeat until done) or
+                            switch on the scheduled action for unattended runs. This is when providers are
+                            called and costs arise.</li>
+                        <li><b>Approve</b> (menu Proposals): each proposal shows the candidates, who wrote
+                            them, the scores and the reviewers' remarks. Apply the proposal, pick another
+                            candidate, type your own wording, or reject it.</li>
+                    </ol>
+                    <h4>Good to know</h4>
+                    <ul>
+                        <li>The surrounding page is given to every provider as context, so single words are
+                            understood in their setting. Set the hints and the glossary for technical terms.</li>
+                        <li>Tags, placeholders, numbers and links are checked automatically; a text that
+                            breaks them can never win.</li>
+                        <li>Hosted providers receive the texts. Mark a rule <i>Confidential</i> to use only
+                            providers on your own server.</li>
+                        <li>Proofreading keeps the original unless a change is clearly better.</li>
+                    </ul>
+                    <p class="text-muted">Press Next to create your first rule.</p>
+                </div>
+
+                <div invisible="step != 'what'">
+                    <group>
+                        <group string="What">
+                            <field name="kind" widget="radio"/>
+                            <field name="model_id" options="{'no_create': True}"/>
+                            <field name="field_ids" widget="many2many_tags" options="{'no_create': True}"/>
+                            <field name="domain" widget="domain" options="{'model': 'model_name'}"
+                                   invisible="not model_id"/>
+                        </group>
+                        <group string="Languages">
+                            <field name="source_lang_id" options="{'no_create': True}"/>
+                            <field name="text_lang_id" options="{'no_create': True}"/>
+                            <field name="target_lang_ids" widget="many2many_tags" options="{'no_create': True}"
+                                   invisible="kind == 'proofread'"/>
+                            <field name="mode" invisible="kind == 'proofread'"/>
+                        </group>
+                    </group>
+                    <div class="mb-2" invisible="kind == 'proofread'">
+                        <button name="action_all_languages" type="object" class="btn btn-secondary"
+                                string="All active languages"/>
+                        <button name="action_website_languages" type="object" class="btn btn-secondary ms-2"
+                                string="Languages of the websites"/>
+                    </div>
+                    <p class="text-muted">
+                        <b>Source language</b> is the language slot in Odoo that holds the original text. If the
+                        text in that slot is really written in another language (for example German kept in
+                        the English slot), enter the real one under <i>Text is really written in</i>.
+                        <b>Only missing</b> skips what is already translated.
+                    </p>
+                </div>
+
+                <div invisible="step != 'who'">
+                    <group>
+                        <group string="Providers">
+                            <field name="provider_ids" widget="many2many_tags" options="{'no_create': True}"/>
+                            <field name="confidential"/>
+                        </group>
+                        <group string="Result">
+                            <field name="auto_apply"/>
+                            <field name="scan_now"/>
+                        </group>
+                    </group>
+                    <field name="provider_status"/>
+                    <group string="Hints for the providers">
+                        <field name="instructions" nolabel="1" colspan="2"
+                               placeholder="e.g. Formal address (Sie). IT company: ISTA+, E-SYS and product names stay unchanged. Search terms in quotes are not translated."/>
+                    </group>
+                    <p class="text-muted">
+                        Leave the providers empty to use every active provider that is ready. A hint about the
+                        subject area helps most with single words and short labels.
+                    </p>
+                </div>
+
+                <div invisible="step != 'done'">
+                    <group>
+                        <field name="name"/>
+                    </group>
+                    <field name="summary"/>
+                    <p class="text-muted">
+                        After creating, press <i>Process one batch</i> on the rule (repeat until the queue is
+                        empty), then review the proposals. The rule does not run on a schedule until you
+                        switch on <i>Scan and process automatically</i> and the scheduled action.
+                    </p>
+                </div>
+
+                <footer>
+                    <button name="action_back" type="object" string="Back" invisible="step == 'intro'"/>
+                    <button name="action_next" type="object" string="Next" class="btn-primary"
+                            invisible="step == 'done'"/>
+                    <button name="action_create" type="object" string="Create rule" class="btn-primary"
+                            invisible="step != 'done'"/>
+                    <button string="Cancel" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_ai_translation_wizard" model="ir.actions.act_window">
+        <field name="name">Start wizard</field>
+        <field name="res_model">ai.translation.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+</odoo>

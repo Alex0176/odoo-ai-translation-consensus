@@ -9,7 +9,8 @@ each other's results anonymously and agree on the most accurate and natural
 wording. Works for translation into other languages and for proofreading in
 the source language, with the surrounding page as context. Keyless and keyed
 services can be mixed. Nothing is written without a rule, and by default a
-human approves every proposal.
+human approves every proposal. A start wizard explains the steps and creates
+the first rule.
 """,
     "version": "19.0.1.0.0",
     "category": "Productivity/Translation",
@@ -25,6 +26,7 @@ human approves every proposal.
         "views/ai_translation_glossary_views.xml",
         "views/ai_translation_watch_views.xml",
         "views/ai_translation_unit_views.xml",
+        "views/ai_translation_wizard_views.xml",
         "views/menus.xml",
         "data/ai_translation_provider_data.xml",
         "data/ir_cron_data.xml",

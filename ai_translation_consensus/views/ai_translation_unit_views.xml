@@ -139,6 +139,16 @@
         <field name="view_mode">list,form</field>
         <field name="search_view_id" ref="view_ai_translation_unit_search"/>
         <field name="context">{'search_default_open': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No proposals yet</p>
+            <p>
+                A proposal is one text block with the wordings the providers wrote for it, their
+                scores and remarks. They appear when a rule has searched for texts and the batch
+                was processed. Create a rule with <i>Start here</i>, or open a rule and press
+                <i>Scan now</i> and <i>Process one batch</i>. Then apply, change or reject each
+                proposal here.
+            </p>
+        </field>
     </record>
 
     <record id="server_action_unit_approve" model="ir.actions.server">
