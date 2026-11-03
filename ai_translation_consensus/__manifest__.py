@@ -17,7 +17,7 @@ the first rule.
     "author": "Biricon IT Services GmbH",
     "website": "https://github.com/Alex0176/odoo-ai-translation-consensus",
     "license": "AGPL-3",
-    "depends": ["base"],
+    "depends": ["base", "mail"],
     "external_dependencies": {"python": ["requests"]},
     "data": [
         "security/security.xml",
@@ -27,10 +27,20 @@ the first rule.
         "views/ai_translation_watch_views.xml",
         "views/ai_translation_unit_views.xml",
         "views/ai_translation_wizard_views.xml",
+        "views/ai_translation_usage_views.xml",
+        "views/dashboard_views.xml",
         "views/menus.xml",
         "data/ai_translation_provider_data.xml",
         "data/ir_cron_data.xml",
+        "data/discuss_channel_data.xml",
     ],
+    "assets": {
+        "web.assets_backend": [
+            "ai_translation_consensus/static/src/dashboard/dashboard.js",
+            "ai_translation_consensus/static/src/dashboard/dashboard.xml",
+            "ai_translation_consensus/static/src/dashboard/dashboard.scss",
+        ],
+    },
     "application": True,
     "installable": True,
 }

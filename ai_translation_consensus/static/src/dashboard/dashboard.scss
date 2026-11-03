@@ -1,0 +1,37 @@
+.o_ai_tr_dashboard {
+    .o_ai_tr_bar {
+        display: flex;
+        height: 1.1rem;
+        border-radius: 0.4rem;
+        overflow: hidden;
+        background: var(--bs-gray-200, #e9ecef);
+        > span { display: block; height: 100%; min-width: 0; }
+    }
+    .o_ai_tr_bar_small { height: 0.6rem; min-width: 8rem; }
+    .o_ai_tr_applied { background: #198754; }
+    .o_ai_tr_unchanged { background: #8fd1a6; }
+    .o_ai_tr_closed { background: #adb5bd; }
+    .o_ai_tr_consensus { background: #0d6efd; }
+    .o_ai_tr_review { background: #ffc107; }
+    .o_ai_tr_failed { background: #dc3545; }
+    .o_ai_tr_new { background: transparent; }
+    .o_ai_tr_dot {
+        display: inline-block; width: 0.7rem; height: 0.7rem; border-radius: 50%;
+        margin-right: 0.3rem; vertical-align: baseline;
+    }
+    .o_ai_tr_dot.o_ai_tr_new { background: var(--bs-gray-300, #dee2e6); }
+    .o_ai_tr_tiles {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+        gap: 0.75rem;
+    }
+    .o_ai_tr_tile {
+        border: 1px solid var(--bs-border-color, #dee2e6);
+        border-radius: 0.5rem;
+        padding: 0.6rem 0.8rem;
+        background: var(--bs-body-bg, #fff);
+        .o_ai_tr_value { font-size: 1.25rem; font-weight: 600; line-height: 1.3; }
+        .o_ai_tr_value.o_ai_tr_small { font-size: 1rem; }
+    }
+    .o_ai_tr_legend span { margin-right: 1rem; cursor: pointer; white-space: nowrap; }
+}

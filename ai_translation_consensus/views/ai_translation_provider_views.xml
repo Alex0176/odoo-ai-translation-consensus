@@ -56,6 +56,11 @@
                             <field name="timeout"/>
                             <field name="sequence"/>
                         </group>
+                        <group string="Prices (for the cost display)" invisible="not needs_key">
+                            <field name="price_input" invisible="kind in ('deepl', 'google', 'azure', 'libretranslate', 'mymemory', 'lingva')"/>
+                            <field name="price_output" invisible="kind in ('deepl', 'google', 'azure', 'libretranslate', 'mymemory', 'lingva')"/>
+                            <field name="price_chars" invisible="kind not in ('deepl', 'google', 'azure', 'libretranslate', 'mymemory', 'lingva')"/>
+                        </group>
                         <group string="Advanced">
                             <field name="extra_json" placeholder='{"body": {"temperature": 0.2}}'/>
                             <field name="note"/>

@@ -44,6 +44,9 @@ class OpenAICompatible(ChatProvider):
             raise ProviderError("unexpected answer: %s" % str(data)[:150])
         if isinstance(content, list):
             content = "".join(p.get("text", "") for p in content if isinstance(p, dict))
+        usage = data.get("usage") if isinstance(data, dict) else None
+        if isinstance(usage, dict) and usage.get("prompt_tokens") is not None:
+            self._tokens(usage.get("prompt_tokens"), usage.get("completion_tokens"))
         return content or ""
 
 
@@ -73,6 +76,9 @@ class Anthropic(ChatProvider):
                    "content-type": "application/json"}
         data = call("POST", base + "/messages", headers=headers, json_body=body,
                     timeout=self.timeout, secrets=[self.key])
+        usage = data.get("usage") if isinstance(data, dict) else None
+        if isinstance(usage, dict) and usage.get("input_tokens") is not None:
+            self._tokens(usage.get("input_tokens"), usage.get("output_tokens"))
         try:
             return "".join(b.get("text", "") for b in data["content"] if b.get("type") == "text")
         except (KeyError, TypeError):
@@ -98,6 +104,9 @@ class Gemini(ChatProvider):
         data = call("POST", "%s/models/%s:generateContent" % (base, model),
                     headers={"x-goog-api-key": self.key, "content-type": "application/json"},
                     json_body=body, timeout=self.timeout, secrets=[self.key])
+        meta = data.get("usageMetadata") if isinstance(data, dict) else None
+        if isinstance(meta, dict) and meta.get("promptTokenCount") is not None:
+            self._tokens(meta.get("promptTokenCount"), meta.get("candidatesTokenCount"))
         try:
             parts = data["candidates"][0]["content"]["parts"]
             return "".join(p.get("text", "") for p in parts)
@@ -122,6 +131,10 @@ class Cohere(ChatProvider):
         data = call("POST", base + "/chat",
                     headers={"Authorization": "Bearer " + self.key, "content-type": "application/json"},
                     json_body=body, timeout=self.timeout, secrets=[self.key])
+        usage = (data.get("usage") or {}) if isinstance(data, dict) else {}
+        tokens = usage.get("tokens") or usage.get("billed_units") or {}
+        if tokens.get("input_tokens") is not None:
+            self._tokens(tokens.get("input_tokens"), tokens.get("output_tokens"))
         try:
             return "".join(p.get("text", "") for p in data["message"]["content"])
         except (KeyError, TypeError):

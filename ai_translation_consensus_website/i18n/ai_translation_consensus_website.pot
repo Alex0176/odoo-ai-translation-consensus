@@ -1,0 +1,104 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* ai_translation_consensus_website
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 19.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-11-03 18:54+0000\n"
+"PO-Revision-Date: 2026-11-03 18:54+0000\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: \n"
+
+#. module: ai_translation_consensus_website
+#: model:ir.model.fields,help:ai_translation_consensus_website.field_ai_translation_wizard__scope
+msgid ""
+"A whole website creates one rule for every kind of content it has: pages, "
+"menus, blogs, forums, shop products and categories and so on, depending on "
+"what is installed."
+msgstr ""
+
+#. module: ai_translation_consensus_website
+#: model:ir.model.fields.selection,name:ai_translation_consensus_website.selection__ai_translation_wizard__scope__website
+msgid "A whole website with everything on it"
+msgstr ""
+
+#. module: ai_translation_consensus_website
+#: model:ir.model,name:ai_translation_consensus_website.model_ai_translation_wizard
+msgid "AI translation: start wizard"
+msgstr ""
+
+#. module: ai_translation_consensus_website
+#. odoo-python
+#: code:addons/ai_translation_consensus_website/models/ai_translation_wizard.py:0
+msgid "Choose a website and at least one kind of content."
+msgstr ""
+
+#. module: ai_translation_consensus_website
+#. odoo-python
+#: code:addons/ai_translation_consensus_website/models/ai_translation_wizard.py:0
+msgid "Choose at least one target language other than the source language."
+msgstr ""
+
+#. module: ai_translation_consensus_website
+#. odoo-python
+#: code:addons/ai_translation_consensus_website/models/ai_translation_wizard.py:0
+msgid "Choose the source language."
+msgstr ""
+
+#. module: ai_translation_consensus_website
+#: model:ir.model.fields,field_description:ai_translation_consensus_website.field_ai_translation_wizard__display_name
+msgid "Display Name"
+msgstr ""
+
+#. module: ai_translation_consensus_website
+#: model:ir.model.fields,field_description:ai_translation_consensus_website.field_ai_translation_wizard__id
+msgid "ID"
+msgstr ""
+
+#. module: ai_translation_consensus_website
+#. odoo-python
+#: code:addons/ai_translation_consensus_website/models/ai_translation_wizard.py:0
+#: model:ir.model.fields,field_description:ai_translation_consensus_website.field_ai_translation_wizard__site_model_ids
+msgid "Kinds of content"
+msgstr ""
+
+#. module: ai_translation_consensus_website
+#: model:ir.model.fields.selection,name:ai_translation_consensus_website.selection__ai_translation_wizard__scope__record
+msgid "One kind of record (e.g. only blog posts)"
+msgstr ""
+
+#. module: ai_translation_consensus_website
+#: model:ir.model.fields,help:ai_translation_consensus_website.field_ai_translation_wizard__site_model_ids
+msgid ""
+"One rule is created for each of these. Remove what you do not want "
+"translated."
+msgstr ""
+
+#. module: ai_translation_consensus_website
+#: model:ir.model.fields,field_description:ai_translation_consensus_website.field_ai_translation_wizard__scope
+msgid "Scope"
+msgstr ""
+
+#. module: ai_translation_consensus_website
+#: model_terms:ir.ui.view,arch_db:ai_translation_consensus_website.view_ai_translation_wizard_form_website
+msgid "Suggest the content of the website"
+msgstr ""
+
+#. module: ai_translation_consensus_website
+#. odoo-python
+#: code:addons/ai_translation_consensus_website/models/ai_translation_wizard.py:0
+#: model:ir.model.fields,field_description:ai_translation_consensus_website.field_ai_translation_wizard__website_id
+msgid "Website"
+msgstr ""
+
+#. module: ai_translation_consensus_website
+#. odoo-python
+#: code:addons/ai_translation_consensus_website/models/ai_translation_wizard.py:0
+msgid "Website %(site)s"
+msgstr ""

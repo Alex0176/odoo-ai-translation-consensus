@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="action_ai_translation_dashboard" model="ir.actions.client">
+        <field name="name">Dashboard</field>
+        <field name="tag">ai_translation_consensus.dashboard</field>
+    </record>
+</odoo>

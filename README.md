@@ -80,11 +80,16 @@ What has been verified:
 
 ```bash
 git clone https://github.com/Alex0176/odoo-ai-translation-consensus
-# put the folder `ai_translation_consensus` on your addons path, then
+# put the folders `ai_translation_consensus` (and optionally `ai_translation_consensus_website`)
+# on your addons path, then
 odoo-bin -d <db> -i ai_translation_consensus --stop-after-init
 ```
 
 Needs Odoo 19 and the Python package `requests`. German translation included.
+
+An optional bridge module, `ai_translation_consensus_website`, is installed automatically when
+`website` is present. It adds the scope **A whole website with everything on it** to the wizard
+(see below).
 
 ## Quick start
 
@@ -103,6 +108,38 @@ first rule. By hand:
 5. When you trust a rule, switch on *Apply consensus automatically* and the cron
    (deactivated on installation) to run it unattended. Proposals without agreement still
    wait for a human.
+
+## A whole website
+
+In the wizard choose the scope **A whole website with everything on it**, pick the website and
+press *Suggest the content of the website*. The bridge module looks at every model that has
+translatable fields and a `website_id` (or that belongs to the website through pages, menus,
+blogs, products, events, forums, courses ...) and proposes one rule per kind of content, with
+the languages of the website as targets. Whatever is installed is found; whatever is not
+installed (forums, courses, galleries) simply does not appear and is picked up the day you
+install it. Remove the kinds you do not want, then create. Not offered on purpose: partners,
+companies, payment providers, pricelists, delivery carriers, loyalty programs and snippet
+filters. URL slugs (`seo_name`) are not translated.
+
+## Dashboard, cost and automatic start
+
+*AI Translation ▸ Dashboard* shows for every rule how many texts are finished, waiting for a
+decision, queued or failed, per language and per provider, and refreshes itself every few seconds.
+
+* **Cost so far / until finished** and **time until finished** are estimates from what the providers
+  actually reported: tokens (OpenAI, Anthropic, Gemini, Cohere) or characters (DeepL, Google,
+  Azure ...). Tokens are always shown, money only when you entered the price per million
+  tokens (or characters) on the provider. Services that do not report tokens are estimated from
+  the text length and marked as such. The time uses the measured seconds per text, and the
+  schedule of the cron when it is switched on.
+* *Usage and cost* lists every batch (provider, language, tokens, seconds, cost).
+* Rules with **Start by itself when a record changes** search only records changed since their
+  last full scan when the cron runs and process the new texts; with the cron switched on an
+  edited web page is translated again without anybody pressing a button.
+* When the last open text of a rule is finished, a message **"All languages translated"**
+  (proofreading: "All texts proofread") is posted once in the channel *AI Translation* by the bot.
+  Members of the reviewer group are subscribed automatically; the message is posted again after
+  new texts have been found and finished.
 
 ## Safety and privacy
 
@@ -127,18 +164,21 @@ first rule. By hand:
 A text costs one call per translator, plus one review call per reviewer, plus a second
 round when the vote is split. Page context adds input tokens. Use *Records per scan*,
 *New proposals per scan* and *Proposals processed per cron run* to keep runs bounded, and
-keep cheap or local models in the mix as reviewers.
+keep cheap or local models in the mix as reviewers. The Dashboard shows what has been spent and
+forecasts what the queue will still cost; prices are entered on the providers (the presets do not
+carry a price list because vendors change them).
 
 ## Tests
 
 ```bash
-odoo-bin -d <test-db> -i ai_translation_consensus --test-enable \
-         --test-tags /ai_translation_consensus --stop-after-init
+odoo-bin -d <test-db> -i ai_translation_consensus,ai_translation_consensus_website --test-enable \
+         --test-tags /ai_translation_consensus,/ai_translation_consensus_website --stop-after-init
 ```
 
 The suite covers the checks, the consensus maths, the pipeline with scripted providers,
-every HTTP adapter against a local mock server, and the Odoo flow (scan, process, approve,
-stale sources, term and plain fields, proofreading, confidential rules).
+every HTTP adapter against a local mock server, the Odoo flow (scan, process, approve,
+stale sources, term and plain fields, proofreading, confidential rules), token and cost accounting,
+the dashboard figures and forecast, the completion message and the whole-website wizard.
 
 ## Limits
 

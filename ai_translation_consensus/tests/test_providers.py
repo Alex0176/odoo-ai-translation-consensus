@@ -52,13 +52,17 @@ class _Handler(BaseHTTPRequestHandler):
                 return self._send(429, {"error": "slow down"}, {"Retry-After": "0"})
             return self._send(200, {"choices": [{"message": {"content": REPLY}}]})
         if path.endswith("/chat/completions"):
-            return self._send(200, {"choices": [{"message": {"content": REPLY}}]})
+            return self._send(200, {"choices": [{"message": {"content": REPLY}}],
+                                    "usage": {"prompt_tokens": 120, "completion_tokens": 30}})
         if path.endswith("/messages"):
-            return self._send(200, {"content": [{"type": "text", "text": REPLY}]})
+            return self._send(200, {"content": [{"type": "text", "text": REPLY}],
+                                    "usage": {"input_tokens": 110, "output_tokens": 25}})
         if ":generateContent" in path:
-            return self._send(200, {"candidates": [{"content": {"parts": [{"text": REPLY}]}}]})
+            return self._send(200, {"candidates": [{"content": {"parts": [{"text": REPLY}]}}],
+                                    "usageMetadata": {"promptTokenCount": 90, "candidatesTokenCount": 20}})
         if path.endswith("/chat"):
-            return self._send(200, {"message": {"content": [{"type": "text", "text": REPLY}]}})
+            return self._send(200, {"message": {"content": [{"type": "text", "text": REPLY}]},
+                                    "usage": {"tokens": {"input_tokens": 80, "output_tokens": 15}}})
         if path.endswith("/v2/translate"):
             return self._send(200, {"translations": [{"text": "Hallo Welt"} for _ in body["text"]]})
         if path.endswith("/v2"):          # google
@@ -124,6 +128,28 @@ class TestProviders(BaseCase):
         self.assertEqual(req["headers"]["authorization"], "Bearer secret-key-123")
         self.assertEqual(req["body"]["model"], "m1")
         self.assertIn("Hello world", req["body"]["messages"][1]["content"])
+
+    def test_usage_is_read_from_every_api(self):
+        for kind, expected in (("openai", (120, 30)), ("anthropic", (110, 25)),
+                               ("gemini", (90, 20)), ("cohere", (80, 15))):
+            prov = self.provider(kind, model="m1")
+            self.translate(prov)
+            usage = prov.usage
+            self.assertEqual((usage["input_tokens"], usage["output_tokens"]), expected, kind)
+            self.assertEqual((usage["calls"], usage["estimated"]), (1, False), kind)
+
+    def test_usage_is_estimated_when_the_service_reports_none(self):
+        prov = self.provider("openai", model="m1", base_url=self.url + "/flaky")
+        self.server.flaky = 0
+        self.translate(prov)
+        self.assertTrue(prov.usage["estimated"])
+        self.assertGreater(prov.usage["input_tokens"], 0)
+
+    def test_translation_engine_usage_counts_characters(self):
+        prov = self.provider("libretranslate")
+        self.translate(prov)
+        self.assertEqual(prov.usage["calls"], 1)
+        self.assertEqual(prov.usage["chars"], len("Hello world"))
 
     def test_openai_extra_body(self):
         prov = self.provider("openai", model="m1", extra={"body": {"temperature": 0.1}})

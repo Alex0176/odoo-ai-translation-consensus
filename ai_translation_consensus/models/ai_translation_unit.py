@@ -1,6 +1,7 @@
 # Copyright 2026 Biricon IT Services GmbH
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
 import logging
+import time
 
 from odoo import _, api, fields, models
 from odoo.exceptions import UserError
@@ -11,6 +12,7 @@ _logger = logging.getLogger(__name__)
 
 MIN_CRON_SECONDS_LEFT = 150     # a provider call may take up to its timeout
 CTX_CHARS = 240
+OPEN_STATES = ("new", "review", "consensus", "failed")
 
 
 class AiTranslationUnit(models.Model):
@@ -56,12 +58,32 @@ class AiTranslationUnit(models.Model):
     error = fields.Text()
     candidate_ids = fields.One2many("ai.translation.candidate", "unit_id")
     rating_ids = fields.One2many("ai.translation.rating", "unit_id")
+    processed_at = fields.Datetime(readonly=True, help="When the providers last worked on this text.")
+    process_seconds = fields.Float(readonly=True, help="Working time per text (batch time divided by its size).")
     applied_date = fields.Datetime(readonly=True)
     applied_uid = fields.Many2one("res.users", readonly=True)
 
     _unique_text = models.Constraint(
         "UNIQUE(watch_id, model_name, res_id, field_name, lang, source_hash)",
         "This text is already queued for this language.")
+
+    # ------------------------------------------------------------ completion
+    @api.model_create_multi
+    def create(self, vals_list):
+        records = super().create(vals_list)
+        records.mapped("watch_id").filtered("completion_notified").write({"completion_notified": False})
+        return records
+
+    def write(self, vals):
+        res = super().write(vals)
+        state = vals.get("state")
+        if state:
+            watches = self.mapped("watch_id")
+            if state in OPEN_STATES:
+                watches.filtered("completion_notified").write({"completion_notified": False})
+            elif not self.env.context.get("ai_translation_defer_check"):
+                watches._check_completion()
+        return res
 
     # ------------------------------------------------------------ scanning
     @api.model
@@ -208,6 +230,7 @@ class AiTranslationUnit(models.Model):
         (units - fresh).write({"state": "stale", "error": _("The source text changed meanwhile.")})
         if not fresh:
             return len(units)
+        fresh = fresh.with_context(ai_translation_defer_check=True)
         translators, reviewers = watch._pick_providers()
         if not translators:
             _logger.warning("AI translation rule %s: no usable provider, %s units stay queued",
@@ -219,15 +242,20 @@ class AiTranslationUnit(models.Model):
         glossary = self.env["ai.translation.glossary"]._lines_for(first.lang, texts)
         page = self._page_context(rec, watch, texts)
         prompt_src, prompt_tgt = watch._prompt_langs(first.source_lang, first.lang)
+        started = time.monotonic()
         results = pipeline.process(
             watch.kind, prompt_src, prompt_tgt, items, translators, reviewers,
             glossary=glossary, instructions=watch.instructions or "", page_context=page,
             threshold=watch.threshold, min_score=watch.min_score, max_rounds=watch.max_rounds,
             exclude_self=watch.exclude_self, review_unanimous=watch.review_unanimous)
         errors = results.pop("__errors__", {})
+        elapsed = time.monotonic() - started
         for unit in fresh:
             unit._store_result(results[str(unit.id)], errors, watch)
+        fresh.write({"processed_at": fields.Datetime.now(), "process_seconds": elapsed / len(fresh)})
+        self.env["ai.translation.usage"]._log(watch, translators + reviewers, first.lang, len(fresh))
         (fresh.filtered(lambda u: u.state == "consensus" and watch.auto_apply))._apply_all(auto=True)
+        watch._check_completion()
         return len(units)
 
     def _page_context(self, rec, watch, texts):

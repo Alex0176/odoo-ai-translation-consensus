@@ -47,6 +47,12 @@ class AiTranslationProvider(models.Model):
     last_message = fields.Char(readonly=True, copy=False)
     last_check = fields.Datetime(readonly=True, copy=False)
     note = fields.Text()
+    price_input = fields.Float(string="Price per million input tokens", digits=(16, 4),
+                               help="In the company currency. Language models bill by tokens; "
+                                    "enter the vendor's current price. Leave 0 for a free service.")
+    price_output = fields.Float(string="Price per million output tokens", digits=(16, 4))
+    price_chars = fields.Float(string="Price per million characters", digits=(16, 4),
+                               help="Translation engines such as DeepL bill by characters.")
 
     _name_uniq = models.Constraint("UNIQUE(name)", "The provider name must be unique.")
 
@@ -76,6 +82,18 @@ class AiTranslationProvider(models.Model):
             self.is_local = cls.local_by_default
             if not cls.can_review:
                 self.role = "translate"
+
+    def _cost(self, usage):
+        """``(cost, priced)`` for a usage dict. ``priced`` is False when no price is entered
+        although the service was used, so the cost is unknown rather than zero."""
+        self.ensure_one()
+        rec = self.sudo()
+        if not (rec.price_input or rec.price_output or rec.price_chars):
+            return 0.0, rec.is_local or not rec.needs_key
+        cost = (usage.get("input_tokens", 0) * rec.price_input
+                + usage.get("output_tokens", 0) * rec.price_output
+                + usage.get("chars", 0) * rec.price_chars) / 1_000_000
+        return cost, True
 
     def _config(self):
         self.ensure_one()

@@ -21,6 +21,7 @@ class ScriptedChat(ChatProvider):
     def generate(self, kind, src, tgt, items, glossary=(), instructions="", page_context=""):
         if self.extra.get("fail"):
             raise ProviderError("down")
+        self._record(calls=1, input_tokens=100, output_tokens=40)
         table = self.extra.get("table", {})
         ScriptedChat.last_context = page_context
         ScriptedChat.last_glossary = list(glossary)
@@ -28,6 +29,7 @@ class ScriptedChat(ChatProvider):
                 for i in items if i["text"] in table}
 
     def review(self, kind, src, tgt, items, glossary=(), instructions="", page_context="", round_no=1):
+        self._record(calls=1, input_tokens=100, output_tokens=40)
         out = {}
         for item in items:
             scores, best = {}, ""
@@ -258,7 +260,7 @@ class TestModels(TransactionCase):
     def test_wizard_blocks_creation_without_provider(self):
         wiz = self._wizard()
         wiz.step = "done"
-        self.assertIn("No usable provider", wiz.summary)
+        self.assertIn("No usable provider", wiz.with_context(lang="en_US").summary)
         with self.assertRaises(UserError):
             wiz.action_create()
         self.assertFalse(self.env["ai.translation.watch"].search([("model_id", "=", wiz.model_id.id)]))
@@ -283,3 +285,124 @@ class TestModels(TransactionCase):
         self.addCleanup(os.environ.pop, "AI_TRANSLATION_TEST_KEY", None)
         self.assertEqual(prov._config()["api_key"], "from-env")
         self.assertFalse(prov._config()["allow_command"])
+
+    # ------------------------------------------------------------ usage, cost, dashboard, completion
+    def test_usage_is_logged_and_priced(self):
+        one = self._provider("one")
+        self._provider("two")
+        one.write({"price_input": 3.0, "price_output": 15.0})
+        watch = self._watch()
+        watch._scan()
+        watch.unit_ids._process_group()
+        usage = self.env["ai.translation.usage"].search([("watch_id", "=", watch.id)])
+        self.assertEqual(set(usage.mapped("provider_name")), {"one", "two"})
+        row = usage.filtered(lambda u: u.provider_name == "one")
+        self.assertEqual((row.calls, row.input_tokens, row.output_tokens), (1, 100, 40))
+        self.assertAlmostEqual(row.cost, (100 * 3.0 + 40 * 15.0) / 1e6, places=6)
+        self.assertTrue(row.priced)
+        self.assertTrue(watch.unit_ids.processed_at)
+        self.assertGreater(watch.unit_ids.process_seconds, 0)
+
+    def test_dashboard_numbers_and_forecast(self):
+        self._provider("one")
+        self._provider("two")
+        watch = self._watch()
+        watch._scan()
+        data = self.env["ai.translation.watch"].get_dashboard()
+        rule = next(r for r in data["rules"] if r["id"] == watch.id)
+        self.assertEqual((rule["total"], rule["counts"]["new"], rule["closed"]), (1, 1, 0))
+        self.assertFalse(rule["forecast"]["ready"])
+        watch.unit_ids._process_group()
+        rule = next(r for r in self.env["ai.translation.watch"].get_dashboard()["rules"] if r["id"] == watch.id)
+        self.assertEqual(rule["counts"]["consensus"], 1)
+        self.assertEqual((rule["tokens_in"], rule["tokens_out"]), (200, 80))
+        self.assertEqual(rule["languages"][0]["code"], "de_DE")
+        self.assertTrue(rule["cost_known"])           # free providers cost nothing
+        self.assertTrue(rule["forecast"]["ready"])
+
+    def test_forecast_uses_the_measured_cost_per_text(self):
+        one = self._provider("one")
+        self._provider("two")
+        one.write({"price_input": 10.0, "price_output": 10.0})
+        self.env["res.partner.category"].create({"name": "Tools"})
+        watch = self._watch(domain="[('id', 'in', %s)]" % (
+            self.partner_cat.ids + self.env["res.partner.category"].search([("name", "=", "Tools")]).ids))
+        watch._scan()
+        self.assertEqual(len(watch.unit_ids), 2)
+        first = watch.unit_ids[0]
+        first._process_group()
+        rule = watch._stats()
+        self.assertEqual(rule["queued"], 1)
+        per_text = rule["cost"]
+        self.assertAlmostEqual(rule["forecast"]["cost"], per_text, places=6)
+
+    def test_unpriced_paid_provider_is_reported(self):
+        self._provider("paid")
+        usage = self.env["ai.translation.usage"]
+        watch = self._watch()
+        usage.create({"watch_id": watch.id, "provider_name": "paid", "units": 1, "calls": 1,
+                      "input_tokens": 10, "priced": False})
+        self.assertEqual(watch._stats()["unpriced"], ["paid"])
+
+    def test_completion_message_is_posted_once_and_silently(self):
+        self._provider("one")
+        self._provider("two")
+        channel = self.env.ref("ai_translation_consensus.channel_ai_translation")
+        mails = self.env["mail.mail"].search_count([])
+        emails = self.env["mail.notification"].search_count([("notification_type", "=", "email")])
+        before = len(channel.message_ids)
+        watch = self._watch().with_context(lang="en_US")
+        watch._scan()
+        unit = watch.unit_ids
+        unit._process_group()
+        self.assertFalse(watch.completion_notified)           # still waits for approval
+        unit.action_approve()
+        self.assertTrue(watch.completion_notified)
+        new = channel.message_ids[: len(channel.message_ids) - before]
+        self.assertEqual(len(new), 1)
+        self.assertIn("All languages translated", new.body)
+        self.assertEqual(self.env["mail.mail"].search_count([]), mails)
+        self.assertEqual(self.env["mail.notification"].search_count([("notification_type", "=", "email")]),
+                         emails)
+        self.partner_cat.name = "Machinery"                   # a changed text is new work
+        watch._scan()
+        self.assertFalse(watch.completion_notified)
+
+    def test_changed_records_start_the_rule_again(self):
+        self._provider("one")
+        self._provider("two")
+        watch = self._watch()
+        self.assertEqual(watch._scan(), 1)
+        self.assertTrue(watch.scan_since)
+        self.assertEqual(watch.scan_cursor, 0)
+        # untouched for an hour: the cron scan does not even look at it
+        self.env.cr.execute("UPDATE res_partner_category SET write_date = now() - interval '1 hour' "
+                            "WHERE id = %s", [self.partner_cat.id])
+        self.partner_cat.invalidate_recordset()
+        watch.scan_since = self.env.cr.now()
+        with patch.object(type(self.env["ai.translation.unit"]), "_scan_field",
+                          return_value=0) as scan:
+            self.assertEqual(watch._scan(full=False), 0)
+            scan.assert_not_called()
+        self.partner_cat.name = "Machinery"
+        self.assertEqual(watch._scan(full=False), 1)
+        self.assertEqual(len(watch.unit_ids), 2)
+
+    def test_only_managers_switch_the_schedule(self):
+        Watch = self.env["ai.translation.watch"]
+        cron = self.env.ref("ai_translation_consensus.ir_cron_ai_translation")
+        with patch.object(type(self.env["res.users"]), "has_group", return_value=False):
+            self.assertFalse(Watch.get_dashboard()["can_manage"])
+            with self.assertRaises(UserError):
+                Watch.dashboard_toggle_cron()
+        before = cron.active
+        self.assertTrue(Watch.get_dashboard()["can_manage"])
+        self.assertEqual(Watch.dashboard_toggle_cron(), not before)
+
+    def test_wizard_passes_auto_scan_on(self):
+        self._provider("one")
+        self._provider("two")
+        wiz = self._wizard(auto_scan=True)
+        wiz.step = "done"
+        wiz.action_create()
+        self.assertTrue(self.env["ai.translation.watch"].search([], order="id desc", limit=1).auto_scan)

@@ -28,6 +28,10 @@
                         <li><b>Process</b>: on the rule press <i>Process one batch</i> (repeat until done) or
                             switch on the scheduled action for unattended runs. This is when providers are
                             called and costs arise.</li>
+                        <li><b>Follow</b> (menu Dashboard): progress per rule and language, tokens and cost so far,
+                            an estimate of what is still to come, and the switch for scheduled processing.
+                            When everything is done, a message "All languages translated" appears in the chat
+                            channel <i>AI Translation</i>.</li>
                         <li><b>Approve</b> (menu Proposals): each proposal shows the candidates, who wrote
                             them, the scores and the reviewers' remarks. Apply the proposal, pick another
                             candidate, type your own wording, or reject it.</li>
@@ -84,6 +88,7 @@
                         </group>
                         <group string="Result">
                             <field name="auto_apply"/>
+                            <field name="auto_scan"/>
                             <field name="scan_now"/>
                         </group>
                     </group>
@@ -105,8 +110,9 @@
                     <field name="summary"/>
                     <p class="text-muted">
                         After creating, press <i>Process one batch</i> on the rule (repeat until the queue is
-                        empty), then review the proposals. The rule does not run on a schedule until you
-                        switch on <i>Scan and process automatically</i> and the scheduled action.
+                        empty), then review the proposals. Follow the progress in the Dashboard. The rule only runs
+                        by itself when <i>Start by itself when a record changes</i> is set and the scheduled
+                        action is switched on in the Dashboard.
                     </p>
                 </div>
 

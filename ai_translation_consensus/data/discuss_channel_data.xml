@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <!-- Internal chat channel for the "all languages translated" message. Members: everyone in the module's groups. -->
+    <record id="channel_ai_translation" model="discuss.channel">
+        <field name="name">AI Translation</field>
+        <field name="description">Progress messages of the AI translation rules, for example when all languages are translated.</field>
+        <field name="channel_type">channel</field>
+        <field name="group_public_id" ref="group_ai_translation_user"/>
+        <field name="group_ids" eval="[(4, ref('group_ai_translation_user'))]"/>
+    </record>
+</odoo>

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_ai_translation_wizard_form_website" model="ir.ui.view">
+        <field name="name">ai.translation.wizard.form.website</field>
+        <field name="model">ai.translation.wizard</field>
+        <field name="inherit_id" ref="ai_translation_consensus.view_ai_translation_wizard_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='model_id']" position="before">
+                <field name="scope" widget="radio"/>
+                <field name="website_id" options="{'no_create': True}" invisible="scope != 'website'"/>
+                <field name="site_model_ids" widget="many2many_tags" options="{'no_create': True}"
+                       invisible="scope != 'website'"/>
+            </xpath>
+            <xpath expr="//field[@name='model_id']" position="attributes">
+                <attribute name="invisible">scope == 'website'</attribute>
+            </xpath>
+            <xpath expr="//field[@name='field_ids']" position="attributes">
+                <attribute name="invisible">scope == 'website'</attribute>
+            </xpath>
+            <xpath expr="//field[@name='domain']" position="attributes">
+                <attribute name="invisible">scope == 'website' or not model_id</attribute>
+            </xpath>
+            <xpath expr="//button[@name='action_all_languages']" position="before">
+                <button name="action_suggest_site" type="object" class="btn btn-secondary me-2"
+                        string="Suggest the content of the website" invisible="scope != 'website'"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_ai_translation_usage_list" model="ir.ui.view">
+        <field name="name">ai.translation.usage.list</field>
+        <field name="model">ai.translation.usage</field>
+        <field name="arch" type="xml">
+            <list create="0" edit="0">
+                <field name="date"/>
+                <field name="watch_id"/>
+                <field name="provider_name"/>
+                <field name="lang"/>
+                <field name="units" sum="Texts"/>
+                <field name="calls" sum="Requests"/>
+                <field name="errors" sum="Failed"/>
+                <field name="input_tokens" sum="Tokens in"/>
+                <field name="output_tokens" sum="Tokens out"/>
+                <field name="chars" optional="hide" sum="Characters"/>
+                <field name="seconds" optional="hide" sum="Seconds"/>
+                <field name="estimated" optional="hide"/>
+                <field name="cost" sum="Cost"/>
+                <field name="priced" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_ai_translation_usage_search" model="ir.ui.view">
+        <field name="name">ai.translation.usage.search</field>
+        <field name="model">ai.translation.usage</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="provider_name"/>
+                <field name="watch_id"/>
+                <field name="lang"/>
+                <group>
+                    <filter name="group_provider" string="Provider" context="{'group_by': 'provider_name'}"/>
+                    <filter name="group_watch" string="Rule" context="{'group_by': 'watch_id'}"/>
+                    <filter name="group_day" string="Day" context="{'group_by': 'date:day'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_ai_translation_usage" model="ir.actions.act_window">
+        <field name="name">Usage and cost</field>
+        <field name="res_model">ai.translation.usage</field>
+        <field name="view_mode">list</field>
+    </record>
+</odoo>

@@ -1,0 +1,197 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="ai_translation_consensus.Dashboard">
+        <div class="o_ai_tr_dashboard o_action overflow-auto p-3">
+            <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
+                <h2 class="mb-0 me-auto">Progress of the AI translations</h2>
+                <span class="text-muted" t-if="state.data">
+                    Updated <t t-esc="updatedText"/>
+                    <i t-if="state.loading" class="fa fa-refresh fa-spin ms-1"/>
+                </span>
+                <span class="text-danger" t-if="state.error">The data could not be loaded.</span>
+                <div class="form-check form-switch mb-0">
+                    <input class="form-check-input" type="checkbox" id="ai_tr_auto" t-model="state.auto"/>
+                    <label class="form-check-label" for="ai_tr_auto">Refresh automatically</label>
+                </div>
+                <button class="btn btn-secondary" t-on-click="() => this.load()">Refresh</button>
+            </div>
+
+            <t t-if="state.data">
+                <div class="alert d-flex flex-wrap align-items-center gap-3"
+                     t-att-class="state.data.cron.active ? 'alert-success' : 'alert-warning'">
+                    <span class="me-auto">
+                        <t t-if="state.data.cron.active">
+                            <b>Scheduled processing is on</b>
+                            (every <t t-esc="state.data.cron.interval"/>). Rules with automatic scanning look for
+                            changed records, for example an edited web page, and translate them by themselves.
+                        </t>
+                        <t t-else="">
+                            <b>Scheduled processing is off.</b> Nothing runs by itself. Process batches by hand below,
+                            or switch it on so that changed records are picked up automatically.
+                        </t>
+                    </span>
+                    <button t-if="state.data.can_manage" class="btn btn-sm"
+                            t-att-class="state.data.cron.active ? 'btn-outline-secondary' : 'btn-success'"
+                            t-att-disabled="state.busy.cron" t-on-click="() => this.toggleCron()">
+                        <t t-if="state.data.cron.active">Switch off</t>
+                        <t t-else="">Switch on</t>
+                    </button>
+                </div>
+
+                <div t-if="!state.data.rules.length" class="alert alert-info">
+                    There are no rules yet. Open <b>Start here</b> to create the first one.
+                </div>
+
+                <div t-foreach="state.data.rules" t-as="rule" t-key="rule.id" class="card mb-4">
+                    <div class="card-body">
+                        <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                            <h4 class="mb-0 me-2"><a href="#" t-on-click.prevent="() => this.openRule(rule)" t-esc="rule.name"/></h4>
+                            <span class="badge text-bg-secondary" t-esc="kindLabel(rule)"/>
+                            <span t-if="rule.running" class="badge text-bg-primary"><i class="fa fa-cog fa-spin"/> working</span>
+                            <span t-if="rule.completed" class="badge text-bg-success">
+                                <i class="fa fa-check"/> <t t-esc="doneTitle(rule)"/>
+                            </span>
+                            <span t-if="rule.auto_scan" class="badge text-bg-light border">automatic</span>
+                            <span t-if="rule.auto_apply" class="badge text-bg-light border">applies by itself</span>
+                            <span class="ms-auto d-flex gap-2" t-if="state.data.can_manage">
+                                <button class="btn btn-sm btn-secondary" t-att-disabled="state.busy['scan' + rule.id]"
+                                        t-on-click="() => this.scan(rule)">Search for texts</button>
+                                <button class="btn btn-sm btn-primary" t-att-disabled="state.busy['proc' + rule.id] or !rule.counts.new"
+                                        t-on-click="() => this.process(rule)">
+                                    <i t-if="state.busy['proc' + rule.id]" class="fa fa-spinner fa-spin me-1"/>
+                                    Process one batch
+                                </button>
+                            </span>
+                        </div>
+
+                        <div t-if="!rule.total" class="text-muted mb-2">
+                            No texts found yet. Press <i>Search for texts</i>.
+                        </div>
+                        <t t-else="">
+                            <div class="d-flex align-items-baseline gap-2 mb-1">
+                                <span class="fs-3 fw-bold"><t t-esc="percentDone(rule)"/>%</span>
+                                <span class="text-muted">
+                                    <t t-esc="num(rule.closed)"/> of <t t-esc="num(rule.total)"/> texts finished
+                                </span>
+                            </div>
+                            <div class="o_ai_tr_bar mb-2">
+                                <span class="o_ai_tr_applied" t-att-style="'width:' + width(rule.counts.applied, rule.total)"/>
+                                <span class="o_ai_tr_unchanged" t-att-style="'width:' + width(rule.counts.unchanged, rule.total)"/>
+                                <span class="o_ai_tr_closed" t-att-style="'width:' + width(rule.counts.rejected + rule.counts.stale, rule.total)"/>
+                                <span class="o_ai_tr_consensus" t-att-style="'width:' + width(rule.counts.consensus, rule.total)"/>
+                                <span class="o_ai_tr_review" t-att-style="'width:' + width(rule.counts.review, rule.total)"/>
+                                <span class="o_ai_tr_failed" t-att-style="'width:' + width(rule.counts.failed, rule.total)"/>
+                            </div>
+                            <div class="o_ai_tr_legend small mb-3">
+                                <span t-on-click="() => this.openUnits(rule, 'applied')"><i class="o_ai_tr_dot o_ai_tr_applied"/>Applied <b t-esc="num(rule.counts.applied)"/></span>
+                                <span t-on-click="() => this.openUnits(rule, 'unchanged')"><i class="o_ai_tr_dot o_ai_tr_unchanged"/>Nothing to change <b t-esc="num(rule.counts.unchanged)"/></span>
+                                <span t-on-click="() => this.openUnits(rule, 'consensus')"><i class="o_ai_tr_dot o_ai_tr_consensus"/>Agreed, to approve <b t-esc="num(rule.counts.consensus)"/></span>
+                                <span t-on-click="() => this.openUnits(rule, 'review')"><i class="o_ai_tr_dot o_ai_tr_review"/>Needs a human <b t-esc="num(rule.counts.review)"/></span>
+                                <span t-on-click="() => this.openUnits(rule, 'failed')"><i class="o_ai_tr_dot o_ai_tr_failed"/>Failed <b t-esc="num(rule.counts.failed)"/></span>
+                                <span t-on-click="() => this.openUnits(rule, 'new')"><i class="o_ai_tr_dot o_ai_tr_new"/>Queued <b t-esc="num(rule.counts.new)"/></span>
+                                <span t-if="rule.counts.rejected + rule.counts.stale" t-on-click="() => this.openUnits(rule)"><i class="o_ai_tr_dot o_ai_tr_closed"/>Rejected / outdated <b t-esc="num(rule.counts.rejected + rule.counts.stale)"/></span>
+                            </div>
+                        </t>
+
+                        <div class="o_ai_tr_tiles mb-3">
+                            <div class="o_ai_tr_tile">
+                                <div class="text-muted small">Cost so far</div>
+                                <div class="o_ai_tr_value o_ai_tr_small" t-esc="costNow(rule)"/>
+                            </div>
+                            <div class="o_ai_tr_tile">
+                                <div class="text-muted small">Cost until finished (estimate)</div>
+                                <div class="o_ai_tr_value o_ai_tr_small" t-esc="forecastCost(rule)"/>
+                            </div>
+                            <div class="o_ai_tr_tile">
+                                <div class="text-muted small">Time until finished (estimate)</div>
+                                <div class="o_ai_tr_value o_ai_tr_small" t-esc="forecastTime(rule)"/>
+                            </div>
+                            <div class="o_ai_tr_tile">
+                                <div class="text-muted small">Tokens used</div>
+                                <div class="o_ai_tr_value o_ai_tr_small">
+                                    <t t-esc="num(rule.tokens_in)"/> in / <t t-esc="num(rule.tokens_out)"/> out
+                                </div>
+                            </div>
+                            <div class="o_ai_tr_tile">
+                                <div class="text-muted small">Requests</div>
+                                <div class="o_ai_tr_value o_ai_tr_small">
+                                    <t t-esc="num(rule.calls)"/>
+                                    <span t-if="rule.errors" class="text-danger small">(<t t-esc="num(rule.errors)"/> failed)</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div t-if="rule.unpriced.length and rule.providers.length" class="alert alert-info py-2 small">
+                            No price is entered for <b t-esc="rule.unpriced.join(', ')"/>. Tokens are counted, but the cost
+                            only appears once the prices are entered on the provider.
+                        </div>
+
+                        <a href="#" class="small" t-on-click.prevent="() => this.toggleOpen(rule)">
+                            <t t-if="state.open[rule.id]">Hide details</t>
+                            <t t-else="">Show languages and providers</t>
+                        </a>
+                        <div t-if="state.open[rule.id]" class="mt-3">
+                            <div class="table-responsive" t-if="rule.languages.length">
+                                <table class="table table-sm align-middle">
+                                    <thead><tr>
+                                        <th>Language</th><th style="width:20%">Progress</th>
+                                        <th class="text-end">Finished</th><th class="text-end">Queued</th>
+                                        <th class="text-end">To approve</th><th class="text-end">Human</th>
+                                        <th class="text-end">Failed</th>
+                                    </tr></thead>
+                                    <tbody>
+                                        <tr t-foreach="rule.languages" t-as="lang" t-key="lang.code">
+                                            <td><t t-esc="lang.name"/> <span class="text-muted small" t-esc="lang.code"/></td>
+                                            <td>
+                                                <div class="o_ai_tr_bar o_ai_tr_bar_small">
+                                                    <span class="o_ai_tr_applied" t-att-style="'width:' + width(lang.applied, lang.total)"/>
+                                                    <span class="o_ai_tr_unchanged" t-att-style="'width:' + width(lang.unchanged, lang.total)"/>
+                                                    <span class="o_ai_tr_closed" t-att-style="'width:' + width(lang.rejected + lang.stale, lang.total)"/>
+                                                    <span class="o_ai_tr_consensus" t-att-style="'width:' + width(lang.consensus, lang.total)"/>
+                                                    <span class="o_ai_tr_review" t-att-style="'width:' + width(lang.review, lang.total)"/>
+                                                    <span class="o_ai_tr_failed" t-att-style="'width:' + width(lang.failed, lang.total)"/>
+                                                </div>
+                                            </td>
+                                            <td class="text-end"><t t-esc="num(lang.closed)"/> / <t t-esc="num(lang.total)"/></td>
+                                            <td class="text-end" t-esc="num(lang.new)"/>
+                                            <td class="text-end" t-esc="num(lang.consensus)"/>
+                                            <td class="text-end" t-esc="num(lang.review)"/>
+                                            <td class="text-end" t-esc="num(lang.failed)"/>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="table-responsive" t-if="rule.providers.length">
+                                <table class="table table-sm">
+                                    <thead><tr>
+                                        <th>Provider</th><th class="text-end">Requests</th><th class="text-end">Failed</th>
+                                        <th class="text-end">Tokens in</th><th class="text-end">Tokens out</th>
+                                        <th class="text-end">Cost</th>
+                                    </tr></thead>
+                                    <tbody>
+                                        <tr t-foreach="rule.providers" t-as="prov" t-key="prov_index">
+                                            <td><t t-esc="prov.name"/>
+                                                <span t-if="prov.estimated" class="text-muted small"
+                                                      title="The service reports no token counts; they are estimated from the text length."> (estimated)</span>
+                                            </td>
+                                            <td class="text-end" t-esc="num(prov.calls)"/>
+                                            <td class="text-end" t-esc="num(prov.errors)"/>
+                                            <td class="text-end" t-esc="prov.chars and !prov.tokens_in ? num(prov.chars) + ' ' + 'characters' : num(prov.tokens_in)"/>
+                                            <td class="text-end" t-esc="num(prov.tokens_out)"/>
+                                            <td class="text-end"><t t-if="prov.priced"><t t-esc="prov.cost_text"/></t><t t-else="">—</t></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="text-muted small">
+                                Last search: <t t-esc="rule.last_scan or '—'"/>.
+                                <t t-if="rule.scan_pending">The search is not finished yet; more records follow.</t>
+                                Average working time per text: <t t-esc="rule.avg_seconds.toFixed(1)"/> s.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </t>
+        </div>
+    </t>
+</templates>

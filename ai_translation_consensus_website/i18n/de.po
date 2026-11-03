@@ -1,0 +1,98 @@
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 19.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-11-03 18:54+0000\n"
+"PO-Revision-Date: 2026-11-03 18:54+0000\n"
+"Last-Translator: \n"
+"Language-Team: German\n"
+"Language: de\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#. module: ai_translation_consensus_website
+#: model:ir.model.fields,help:ai_translation_consensus_website.field_ai_translation_wizard__scope
+msgid ""
+"A whole website creates one rule for every kind of content it has: pages, "
+"menus, blogs, forums, shop products and categories and so on, depending on "
+"what is installed."
+msgstr ""
+"Eine ganze Webseite legt für jede Art von Inhalt eine eigene Regel an: "
+"Seiten, Menüs, Blogs, Foren, Shop-Produkte und -Kategorien und so weiter, je"
+" nachdem, was installiert ist."
+
+#. module: ai_translation_consensus_website
+#: model:ir.model.fields.selection,name:ai_translation_consensus_website.selection__ai_translation_wizard__scope__website
+msgid "A whole website with everything on it"
+msgstr "Eine ganze Webseite mit allem, was darauf ist"
+
+#. module: ai_translation_consensus_website
+#: model:ir.model,name:ai_translation_consensus_website.model_ai_translation_wizard
+msgid "AI translation: start wizard"
+msgstr "KI-Übersetzung: Startassistent"
+
+#. module: ai_translation_consensus_website
+#. odoo-python
+#: code:addons/ai_translation_consensus_website/models/ai_translation_wizard.py:0
+msgid "Choose a website and at least one kind of content."
+msgstr "Wählen Sie eine Webseite und mindestens eine Art von Inhalt."
+
+#. module: ai_translation_consensus_website
+#. odoo-python
+#: code:addons/ai_translation_consensus_website/models/ai_translation_wizard.py:0
+msgid "Choose at least one target language other than the source language."
+msgstr ""
+"Wählen Sie mindestens eine Zielsprache, die nicht die Quellsprache ist."
+
+#. module: ai_translation_consensus_website
+#. odoo-python
+#: code:addons/ai_translation_consensus_website/models/ai_translation_wizard.py:0
+msgid "Choose the source language."
+msgstr "Wählen Sie die Quellsprache."
+
+#. module: ai_translation_consensus_website
+#. odoo-python
+#: code:addons/ai_translation_consensus_website/models/ai_translation_wizard.py:0
+#: model:ir.model.fields,field_description:ai_translation_consensus_website.field_ai_translation_wizard__site_model_ids
+msgid "Kinds of content"
+msgstr "Arten von Inhalt"
+
+#. module: ai_translation_consensus_website
+#: model:ir.model.fields.selection,name:ai_translation_consensus_website.selection__ai_translation_wizard__scope__record
+msgid "One kind of record (e.g. only blog posts)"
+msgstr "Eine Art von Datensatz (z. B. nur Blogbeiträge)"
+
+#. module: ai_translation_consensus_website
+#: model:ir.model.fields,help:ai_translation_consensus_website.field_ai_translation_wizard__site_model_ids
+msgid ""
+"One rule is created for each of these. Remove what you do not want "
+"translated."
+msgstr ""
+"Für jeden Eintrag wird eine Regel angelegt. Entfernen Sie, was nicht "
+"übersetzt werden soll."
+
+#. module: ai_translation_consensus_website
+#: model:ir.model.fields,field_description:ai_translation_consensus_website.field_ai_translation_wizard__scope
+msgid "Scope"
+msgstr "Umfang"
+
+#. module: ai_translation_consensus_website
+#: model_terms:ir.ui.view,arch_db:ai_translation_consensus_website.view_ai_translation_wizard_form_website
+msgid "Suggest the content of the website"
+msgstr "Inhalte der Webseite vorschlagen"
+
+#. module: ai_translation_consensus_website
+#. odoo-python
+#: code:addons/ai_translation_consensus_website/models/ai_translation_wizard.py:0
+#: model:ir.model.fields,field_description:ai_translation_consensus_website.field_ai_translation_wizard__website_id
+msgid "Website"
+msgstr "Webseite"
+
+#. module: ai_translation_consensus_website
+#. odoo-python
+#: code:addons/ai_translation_consensus_website/models/ai_translation_wizard.py:0
+msgid "Website %(site)s"
+msgstr "Webseite %(site)s"

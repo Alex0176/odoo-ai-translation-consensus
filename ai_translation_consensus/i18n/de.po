@@ -278,6 +278,7 @@ msgid "Api Key"
 msgstr "API-Schlüssel"
 
 #. module: ai_translation_consensus
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.xml:0
 #: model:ir.model.fields.selection,name:ai_translation_consensus.selection__ai_translation_unit__state__applied
 #: model_terms:ir.ui.view,arch_db:ai_translation_consensus.view_ai_translation_unit_search
 msgid "Applied"
@@ -509,6 +510,7 @@ msgstr "Regel anlegen"
 #: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_provider__create_uid
 #: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_rating__create_uid
 #: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_unit__create_uid
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_usage__create_uid
 #: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_watch__create_uid
 #: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_wizard__create_uid
 msgid "Created by"
@@ -520,6 +522,7 @@ msgstr "Erstellt von"
 #: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_provider__create_date
 #: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_rating__create_date
 #: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_unit__create_date
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_usage__create_date
 #: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_watch__create_date
 #: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_wizard__create_date
 msgid "Created on"
@@ -541,6 +544,7 @@ msgstr "Kontext davor"
 #: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_provider__display_name
 #: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_rating__display_name
 #: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_unit__display_name
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_usage__display_name
 #: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_watch__display_name
 #: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_wizard__display_name
 msgid "Display Name"
@@ -585,8 +589,10 @@ msgid "Extra options (JSON)"
 msgstr "Zusätzliche Optionen (JSON)"
 
 #. module: ai_translation_consensus
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.xml:0
 #: model:ir.model.fields.selection,name:ai_translation_consensus.selection__ai_translation_unit__state__failed
 #: model_terms:ir.ui.view,arch_db:ai_translation_consensus.view_ai_translation_unit_search
+#: model_terms:ir.ui.view,arch_db:ai_translation_consensus.view_ai_translation_usage_list
 msgid "Failed"
 msgstr "Fehlgeschlagen"
 
@@ -676,6 +682,7 @@ msgstr "So arbeiten Sie damit"
 #: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_provider__id
 #: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_rating__id
 #: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_unit__id
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_usage__id
 #: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_watch__id
 #: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_wizard__id
 msgid "ID"
@@ -711,6 +718,7 @@ msgid "Kind"
 msgstr "Art"
 
 #. module: ai_translation_consensus
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.xml:0
 #: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_unit__lang
 #: model_terms:ir.ui.view,arch_db:ai_translation_consensus.view_ai_translation_unit_search
 msgid "Language"
@@ -762,6 +770,7 @@ msgstr "Letzter Status"
 #: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_provider__write_uid
 #: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_rating__write_uid
 #: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_unit__write_uid
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_usage__write_uid
 #: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_watch__write_uid
 #: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_wizard__write_uid
 msgid "Last Updated by"
@@ -773,6 +782,7 @@ msgstr "Zuletzt aktualisiert von"
 #: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_provider__write_date
 #: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_rating__write_date
 #: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_unit__write_date
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_usage__write_date
 #: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_watch__write_date
 #: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_wizard__write_date
 msgid "Last Updated on"
@@ -880,6 +890,7 @@ msgid "Needs Key"
 msgstr "Braucht Schlüssel"
 
 #. module: ai_translation_consensus
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.xml:0
 #: model_terms:ir.ui.view,arch_db:ai_translation_consensus.view_ai_translation_unit_search
 msgid "Needs a human"
 msgstr "Braucht einen Menschen"
@@ -950,6 +961,7 @@ msgid "Note"
 msgstr "Notiz"
 
 #. module: ai_translation_consensus
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.xml:0
 #: model:ir.model.fields.selection,name:ai_translation_consensus.selection__ai_translation_unit__state__unchanged
 msgid "Nothing to change"
 msgstr "Nichts zu ändern"
@@ -1084,6 +1096,7 @@ msgid "Process now"
 msgstr "Jetzt verarbeiten"
 
 #. module: ai_translation_consensus
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.xml:0
 #: model_terms:ir.ui.view,arch_db:ai_translation_consensus.view_ai_translation_watch_form
 msgid "Process one batch"
 msgstr "Einen Stapel verarbeiten"
@@ -1105,6 +1118,7 @@ msgid "Proofread the text in its own language"
 msgstr "Den Text in seiner eigenen Sprache Korrektur lesen"
 
 #. module: ai_translation_consensus
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.js:0
 #: model_terms:ir.ui.view,arch_db:ai_translation_consensus.view_ai_translation_unit_search
 msgid "Proofreading"
 msgstr "Korrekturlesen"
@@ -1168,6 +1182,7 @@ msgid "Providers that wrote exactly this text."
 msgstr "Anbieter, die genau diesen Text geschrieben haben."
 
 #. module: ai_translation_consensus
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.xml:0
 #: model:ir.model.fields.selection,name:ai_translation_consensus.selection__ai_translation_unit__state__new
 #: model_terms:ir.ui.view,arch_db:ai_translation_consensus.view_ai_translation_unit_search
 msgid "Queued"
@@ -1326,6 +1341,7 @@ msgstr "Runden und Stapelgröße müssen mindestens 1 sein."
 
 #. module: ai_translation_consensus
 #: model_terms:ir.ui.view,arch_db:ai_translation_consensus.view_ai_translation_unit_search
+#: model_terms:ir.ui.view,arch_db:ai_translation_consensus.view_ai_translation_usage_search
 msgid "Rule"
 msgstr "Regel"
 
@@ -1460,6 +1476,7 @@ msgid "Source language"
 msgstr "Quellsprache"
 
 #. module: ai_translation_consensus
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.xml:0
 #: model:ir.ui.menu,name:ai_translation_consensus.menu_ai_translation_wizard
 msgid "Start here"
 msgstr "Hier starten"
@@ -1739,6 +1756,7 @@ msgid "Translates only"
 msgstr "Nur übersetzen"
 
 #. module: ai_translation_consensus
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.js:0
 #: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_glossary__translation
 #: model:ir.model.fields.selection,name:ai_translation_consensus.selection__ai_translation_candidate__origin__translation
 msgid "Translation"
@@ -1789,6 +1807,7 @@ msgstr "Warnungen"
 
 #. module: ai_translation_consensus
 #: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_unit__watch_id
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_usage__watch_id
 msgid "Watch"
 msgstr "Beobachtung"
 
@@ -1887,3 +1906,741 @@ msgstr "Sie geben jeden Vorschlag frei"
 #: model_terms:ir.ui.view,arch_db:ai_translation_consensus.view_ai_translation_provider_form
 msgid "{\"body\": {\"temperature\": 0.2}}"
 msgstr "{\"body\": {\"temperature\": 0.2}}"
+
+#. module: ai_translation_consensus
+#. odoo-python
+#: code:addons/ai_translation_consensus/models/ai_translation_watch.py:0
+msgid "%(h)s h %(m)s min"
+msgstr "%(h)s Std. %(m)s Min."
+
+#. module: ai_translation_consensus
+#. odoo-python
+#: code:addons/ai_translation_consensus/models/ai_translation_watch.py:0
+msgid ""
+"%(total)s texts: %(applied)s applied, %(unchanged)s unchanged, %(rejected)s "
+"rejected."
+msgstr ""
+"%(total)s Texte: %(applied)s übernommen, %(unchanged)s unverändert, "
+"%(rejected)s abgelehnt."
+
+#. module: ai_translation_consensus
+#. odoo-python
+#: code:addons/ai_translation_consensus/models/ai_translation_watch.py:0
+msgid "%s days"
+msgstr "%s Tage"
+
+#. module: ai_translation_consensus
+#. odoo-python
+#: code:addons/ai_translation_consensus/models/ai_translation_watch.py:0
+msgid "%s min"
+msgstr "%s Min."
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.js:0
+msgid "%s new texts queued."
+msgstr "%s neue Texte vorgemerkt."
+
+#. module: ai_translation_consensus
+#. odoo-python
+#: code:addons/ai_translation_consensus/models/ai_translation_watch.py:0
+msgid "%s s"
+msgstr "%s s"
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.js:0
+msgid "%s texts processed."
+msgstr "%s Texte verarbeitet."
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.xml:0
+msgid "(estimated)"
+msgstr "(geschätzt)"
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.xml:0
+msgid "(every"
+msgstr "(alle"
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.js:0
+msgid "(with the schedule: %s)"
+msgstr "(mit dem Zeitplan: %s)"
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.xml:0
+msgid ""
+"). Rules with automatic scanning look for\n"
+"                            changed records, for example an edited web page, and translate them by themselves."
+msgstr ""
+"). Regeln mit automatischer Suche prüfen geänderte Datensätze, zum Beispiel "
+"eine bearbeitete Webseite, und übersetzen sie von selbst."
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.xml:0
+msgid ""
+". Tokens are counted, but the cost\n"
+"                            only appears once the prices are entered on the provider."
+msgstr ""
+". Tokens werden gezählt, die Kosten erscheinen aber erst, wenn die Preise "
+"beim Anbieter eingetragen sind."
+
+#. module: ai_translation_consensus
+#: model_terms:ir.ui.view,arch_db:ai_translation_consensus.view_ai_translation_wizard_form
+msgid ""
+"<b>Follow</b> (menu Dashboard): progress per rule and language, tokens and cost so far,\n"
+"                            an estimate of what is still to come, and the switch for scheduled processing.\n"
+"                            When everything is done, a message \"All languages translated\" appears in the chat\n"
+"                            channel <i>AI Translation</i>."
+msgstr ""
+"<b>Verfolgen</b> (Menü Dashboard): Fortschritt je Regel und Sprache, "
+"bisherige Tokens und Kosten, eine Schätzung dessen, was noch kommt, und der "
+"Schalter für die geplante Verarbeitung. Sobald alles fertig ist, erscheint "
+"im Chat-Kanal <i>AI Translation</i> die Meldung „Alle Sprachen übersetzt“."
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_usage__priced
+msgid "A price was entered on the provider, so the cost is known."
+msgstr ""
+"Beim Anbieter ist ein Preis eingetragen, die Kosten sind daher bekannt."
+
+#. module: ai_translation_consensus
+#: model:ir.model,name:ai_translation_consensus.model_ai_translation_usage
+msgid "AI translation usage"
+msgstr "KI-Übersetzung: Verbrauch"
+
+#. module: ai_translation_consensus
+#: model_terms:ir.ui.view,arch_db:ai_translation_consensus.view_ai_translation_wizard_form
+msgid ""
+"After creating, press <i>Process one batch</i> on the rule (repeat until the queue is\n"
+"                        empty), then review the proposals. Follow the progress in the Dashboard. The rule only runs\n"
+"                        by itself when <i>Start by itself when a record changes</i> is set and the scheduled\n"
+"                        action is switched on in the Dashboard."
+msgstr ""
+"Drücken Sie nach dem Anlegen bei der Regel auf <i>Einen Stapel "
+"verarbeiten</i> (wiederholen, bis die Warteschlange leer ist) und prüfen Sie"
+" dann die Vorschläge. Den Fortschritt sehen Sie im Dashboard. Die Regel "
+"läuft nur dann von selbst, wenn <i>Von selbst starten, wenn sich ein "
+"Datensatz ändert</i> gesetzt und die geplante Aktion im Dashboard "
+"eingeschaltet ist."
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.xml:0
+msgid "Agreed, to approve"
+msgstr "Einig, zu bestätigen"
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#. odoo-python
+#: code:addons/ai_translation_consensus/models/ai_translation_watch.py:0
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.js:0
+msgid "All languages translated"
+msgstr "Alle Sprachen übersetzt"
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#. odoo-python
+#: code:addons/ai_translation_consensus/models/ai_translation_watch.py:0
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.js:0
+msgid "All texts proofread"
+msgstr "Alle Texte geprüft"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_watch__scan_since
+msgid "Automatic scans only look at records changed after this time."
+msgstr ""
+"Automatische Suchläufe betrachten nur Datensätze, die nach diesem Zeitpunkt "
+"geändert wurden."
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.xml:0
+msgid "Average working time per text:"
+msgstr "Durchschnittliche Arbeitszeit pro Text:"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_usage__calls
+msgid "Calls"
+msgstr "Aufrufe"
+
+#. module: ai_translation_consensus
+#: model_terms:ir.ui.view,arch_db:ai_translation_consensus.view_ai_translation_usage_list
+msgid "Characters"
+msgstr "Zeichen"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_usage__chars
+msgid "Characters sent to a translation engine (billed per character)."
+msgstr ""
+"An eine Übersetzungsmaschine gesendete Zeichen (Abrechnung pro Zeichen)."
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_usage__chars
+msgid "Chars"
+msgstr "Zeichen"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_watch__completion_notified
+msgid "Completion Notified"
+msgstr "Fertigmeldung gesendet"
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.xml:0
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_usage__cost
+#: model_terms:ir.ui.view,arch_db:ai_translation_consensus.view_ai_translation_usage_list
+msgid "Cost"
+msgstr "Kosten"
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.xml:0
+msgid "Cost so far"
+msgstr "Bisherige Kosten"
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.xml:0
+msgid "Cost until finished (estimate)"
+msgstr "Kosten bis zur Fertigstellung (Schätzung)"
+
+#. module: ai_translation_consensus
+#. odoo-python
+#: code:addons/ai_translation_consensus/models/ai_translation_watch.py:0
+msgid "Cost: %s"
+msgstr "Kosten: %s"
+
+#. module: ai_translation_consensus
+#: model:ir.actions.client,name:ai_translation_consensus.action_ai_translation_dashboard
+#: model:ir.ui.menu,name:ai_translation_consensus.menu_ai_translation_dashboard
+msgid "Dashboard"
+msgstr "Dashboard"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_usage__date
+msgid "Date"
+msgstr "Datum"
+
+#. module: ai_translation_consensus
+#: model_terms:ir.ui.view,arch_db:ai_translation_consensus.view_ai_translation_usage_search
+msgid "Day"
+msgstr "Tag"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_usage__errors
+msgid "Errors"
+msgstr "Fehler"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_usage__estimated
+msgid "Estimated"
+msgstr "Geschätzt"
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.xml:0
+msgid "Finished"
+msgstr "Fertig"
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.xml:0
+msgid "Hide details"
+msgstr "Details ausblenden"
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.xml:0
+msgid "Human"
+msgstr "Mensch"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_usage__cost
+msgid "In the company currency, from the prices on the provider."
+msgstr "In der Firmenwährung, berechnet aus den Preisen beim Anbieter."
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_provider__price_input
+msgid ""
+"In the company currency. Language models bill by tokens; enter the vendor's "
+"current price. Leave 0 for a free service."
+msgstr ""
+"In der Firmenwährung. Sprachmodelle rechnen nach Tokens ab; tragen Sie den "
+"aktuellen Preis des Anbieters ein. 0 lassen bei kostenlosen Diensten."
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_usage__input_tokens
+msgid "Input Tokens"
+msgstr "Eingabe-Tokens"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_usage__lang
+msgid "Lang"
+msgstr "Spr."
+
+#. module: ai_translation_consensus
+#. odoo-python
+#: code:addons/ai_translation_consensus/models/ai_translation_watch.py:0
+msgid "Languages: %s"
+msgstr "Sprachen: %s"
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.xml:0
+msgid "Last search:"
+msgstr "Letzte Suche:"
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.xml:0
+msgid "No price is entered for"
+msgstr "Kein Preis eingetragen für"
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.xml:0
+msgid "No texts found yet. Press"
+msgstr "Noch keine Texte gefunden. Drücken Sie"
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.js:0
+msgid "Nothing to process. Search for texts first."
+msgstr "Nichts zu verarbeiten. Suchen Sie zuerst nach Texten."
+
+#. module: ai_translation_consensus
+#. odoo-python
+#: code:addons/ai_translation_consensus/models/ai_translation_watch.py:0
+msgid "Only managers can do this."
+msgstr "Das dürfen nur Manager."
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_usage__output_tokens
+msgid "Output Tokens"
+msgstr "Ausgabe-Tokens"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_provider__price_chars
+msgid "Price per million characters"
+msgstr "Preis pro Million Zeichen"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_provider__price_input
+msgid "Price per million input tokens"
+msgstr "Preis pro Million Eingabe-Tokens"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_provider__price_output
+msgid "Price per million output tokens"
+msgstr "Preis pro Million Ausgabe-Tokens"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_usage__priced
+msgid "Priced"
+msgstr "Mit Preis"
+
+#. module: ai_translation_consensus
+#: model_terms:ir.ui.view,arch_db:ai_translation_consensus.view_ai_translation_provider_form
+msgid "Prices (for the cost display)"
+msgstr "Preise (für die Kostenanzeige)"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_unit__process_seconds
+msgid "Process Seconds"
+msgstr "Verarbeitungssekunden"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_unit__processed_at
+msgid "Processed At"
+msgstr "Verarbeitet am"
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.xml:0
+msgid "Progress"
+msgstr "Fortschritt"
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.xml:0
+msgid "Progress of the AI translations"
+msgstr "Fortschritt der KI-Übersetzungen"
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.xml:0
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_usage__provider_id
+#: model_terms:ir.ui.view,arch_db:ai_translation_consensus.view_ai_translation_usage_search
+msgid "Provider"
+msgstr "Anbieter"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_usage__provider_name
+msgid "Provider Name"
+msgstr "Name des Anbieters"
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.xml:0
+msgid "Refresh"
+msgstr "Aktualisieren"
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.xml:0
+msgid "Refresh automatically"
+msgstr "Automatisch aktualisieren"
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.xml:0
+msgid "Rejected / outdated"
+msgstr "Abgelehnt / veraltet"
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.xml:0
+#: model_terms:ir.ui.view,arch_db:ai_translation_consensus.view_ai_translation_usage_list
+msgid "Requests"
+msgstr "Anfragen"
+
+#. module: ai_translation_consensus
+#. odoo-python
+#: code:addons/ai_translation_consensus/models/ai_translation_watch.py:0
+msgid "Rule: %s"
+msgstr "Regel: %s"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_watch__scan_since
+msgid "Scan Since"
+msgstr "Suche seit"
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.js:0
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.xml:0
+msgid "Scheduled processing is off."
+msgstr "Die geplante Verarbeitung ist aus."
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.xml:0
+msgid "Scheduled processing is on"
+msgstr "Die geplante Verarbeitung ist ein"
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.js:0
+msgid "Scheduled processing is on."
+msgstr "Die geplante Verarbeitung ist ein."
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.xml:0
+msgid "Search for texts"
+msgstr "Nach Texten suchen"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_usage__seconds
+#: model_terms:ir.ui.view,arch_db:ai_translation_consensus.view_ai_translation_usage_list
+msgid "Seconds"
+msgstr "Sekunden"
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.xml:0
+msgid "Show languages and providers"
+msgstr "Sprachen und Anbieter anzeigen"
+
+#. module: ai_translation_consensus
+#. odoo-python
+#: code:addons/ai_translation_consensus/models/ai_translation_wizard.py:0
+msgid "Start"
+msgstr "Start"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_wizard__auto_scan
+msgid "Start by itself when a record changes"
+msgstr "Von selbst starten, wenn sich ein Datensatz ändert"
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.xml:0
+msgid "Switch off"
+msgstr "Ausschalten"
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.xml:0
+msgid "Switch on"
+msgstr "Einschalten"
+
+#. module: ai_translation_consensus
+#: model_terms:ir.ui.view,arch_db:ai_translation_consensus.view_ai_translation_usage_list
+msgid "Texts"
+msgstr "Texte"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_usage__units
+msgid "Texts in the batch."
+msgstr "Texte im Stapel."
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.js:0
+msgid "The action failed."
+msgstr "Die Aktion ist fehlgeschlagen."
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.xml:0
+msgid "The data could not be loaded."
+msgstr "Die Daten konnten nicht geladen werden."
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.xml:0
+msgid "The search is not finished yet; more records follow."
+msgstr "Die Suche ist noch nicht abgeschlossen; weitere Datensätze folgen."
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_usage__estimated
+msgid ""
+"The service reported no token counts; they are estimated from the text "
+"length."
+msgstr ""
+"Der Dienst hat keine Token-Zahlen gemeldet; sie werden aus der Textlänge "
+"geschätzt."
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.xml:0
+msgid ""
+"The service reports no token counts; they are estimated from the text "
+"length."
+msgstr ""
+"Der Dienst meldet keine Token-Zahlen; sie werden aus der Textlänge "
+"geschätzt."
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.xml:0
+msgid "There are no rules yet. Open"
+msgstr "Es gibt noch keine Regeln. Öffnen Sie"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_usage__seconds
+msgid "Time the provider needed."
+msgstr "Zeit, die der Anbieter gebraucht hat."
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.xml:0
+msgid "Time until finished (estimate)"
+msgstr "Zeit bis zur Fertigstellung (Schätzung)"
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.xml:0
+msgid "To approve"
+msgstr "Zu bestätigen"
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.xml:0
+#: model_terms:ir.ui.view,arch_db:ai_translation_consensus.view_ai_translation_usage_list
+msgid "Tokens in"
+msgstr "Tokens ein"
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.xml:0
+#: model_terms:ir.ui.view,arch_db:ai_translation_consensus.view_ai_translation_usage_list
+msgid "Tokens out"
+msgstr "Tokens aus"
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.xml:0
+msgid "Tokens used"
+msgstr "Verbrauchte Tokens"
+
+#. module: ai_translation_consensus
+#. odoo-python
+#: code:addons/ai_translation_consensus/models/ai_translation_watch.py:0
+msgid "Tokens used: %(in)s in, %(out)s out."
+msgstr "Verbrauchte Tokens: %(in)s ein, %(out)s aus."
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_provider__price_chars
+msgid "Translation engines such as DeepL bill by characters."
+msgstr "Übersetzungsmaschinen wie DeepL rechnen nach Zeichen ab."
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_usage__units
+msgid "Units"
+msgstr "Einheiten"
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.xml:0
+msgid "Updated"
+msgstr "Aktualisiert"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_watch__usage_ids
+msgid "Usage"
+msgstr "Verbrauch"
+
+#. module: ai_translation_consensus
+#: model:ir.actions.act_window,name:ai_translation_consensus.action_ai_translation_usage
+#: model:ir.ui.menu,name:ai_translation_consensus.menu_ai_translation_usage
+msgid "Usage and cost"
+msgstr "Verbrauch und Kosten"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_unit__processed_at
+msgid "When the providers last worked on this text."
+msgstr "Wann die Anbieter zuletzt an diesem Text gearbeitet haben."
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_wizard__auto_scan
+msgid ""
+"With the scheduled action switched on (see the Dashboard), the rule looks "
+"for records that changed, for example an edited web page, and processes the "
+"new texts without you."
+msgstr ""
+"Bei eingeschalteter geplanter Aktion (siehe Dashboard) sucht die Regel nach "
+"geänderten Datensätzen, zum Beispiel einer bearbeiteten Webseite, und "
+"verarbeitet die neuen Texte ohne Ihr Zutun."
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_watch__auto_scan
+msgid ""
+"With the scheduled action switched on, the rule looks for records that "
+"changed since its last scan (for example an edited web page) and processes "
+"the new texts by itself."
+msgstr ""
+"Bei eingeschalteter geplanter Aktion sucht die Regel nach Datensätzen, die "
+"sich seit der letzten Suche geändert haben (zum Beispiel eine bearbeitete "
+"Webseite), und verarbeitet die neuen Texte von selbst."
+
+#. module: ai_translation_consensus
+#. odoo-python
+#: code:addons/ai_translation_consensus/models/ai_translation_watch.py:0
+msgid "Working time of the providers: %s"
+msgstr "Arbeitszeit der Anbieter: %s"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_unit__process_seconds
+msgid "Working time per text (batch time divided by its size)."
+msgstr "Arbeitszeit pro Text (Stapelzeit geteilt durch seine Größe)."
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.xml:0
+msgid "applies by itself"
+msgstr "übernimmt selbst"
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.xml:0
+msgid "automatic"
+msgstr "automatisch"
+
+#. module: ai_translation_consensus
+#. odoo-python
+#: code:addons/ai_translation_consensus/models/ai_translation_wizard.py:0
+msgid "automatically when records change (scheduled action must be on)"
+msgstr ""
+"automatisch, wenn sich Datensätze ändern (die geplante Aktion muss "
+"eingeschaltet sein)"
+
+#. module: ai_translation_consensus
+#. odoo-python
+#: code:addons/ai_translation_consensus/models/ai_translation_wizard.py:0
+msgid "by hand"
+msgstr "von Hand"
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.js:0
+msgid "enter prices on the providers"
+msgstr "Preise bei den Anbietern eintragen"
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.xml:0
+msgid "failed)"
+msgstr "fehlgeschlagen)"
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.xml:0
+msgid "in /"
+msgstr "ein /"
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.js:0
+msgid "known after the first batch"
+msgstr "nach dem ersten Stapel bekannt"
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.js:0
+msgid "no prices entered"
+msgstr "keine Preise eingetragen"
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.xml:0
+msgid "of"
+msgstr "von"
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.xml:0
+msgid "out"
+msgstr "aus"
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.xml:0
+msgid "s."
+msgstr "s."
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.xml:0
+msgid "texts finished"
+msgstr "Texte fertig"
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.xml:0
+msgid "to create the first one."
+msgstr ", um die erste anzulegen."
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.xml:0
+msgid "working"
+msgstr "in Arbeit"
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.xml:0
+msgid ""
+"Nothing runs by itself. Process batches by hand below,\n"
+"                            or switch it on so that changed records are picked up automatically."
+msgstr ""
+"Nichts läuft von selbst. Verarbeiten Sie unten Stapel von Hand oder schalten"
+" Sie es ein, damit geänderte Datensätze automatisch erfasst werden."

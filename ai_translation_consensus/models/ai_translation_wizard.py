@@ -58,6 +58,10 @@ class AiTranslationWizard(models.TransientModel):
                                     "subject area, names that must stay unchanged.")
     auto_apply = fields.Boolean(string="Apply agreed results automatically",
                                 help="Off (recommended at first): you approve every proposal.")
+    auto_scan = fields.Boolean(
+        string="Start by itself when a record changes",
+        help="With the scheduled action switched on (see the Dashboard), the rule looks for records that "
+             "changed, for example an edited web page, and processes the new texts without you.")
     scan_now = fields.Boolean(string="Search for texts right after creating", default=True)
     summary = fields.Html(compute="_compute_summary", sanitize=False)
     provider_status = fields.Html(compute="_compute_provider_status", sanitize=False)
@@ -106,7 +110,7 @@ class AiTranslationWizard(models.TransientModel):
             wiz.provider_status = Markup("<ul>%s</ul>") % Markup("").join(rows)
 
     @api.depends("step", "kind", "model_id", "domain", "field_ids", "source_lang_id", "text_lang_id",
-                 "target_lang_ids", "provider_ids", "confidential", "auto_apply", "mode")
+                 "target_lang_ids", "provider_ids", "confidential", "auto_apply", "auto_scan", "mode")
     def _compute_summary(self):
         for wiz in self:
             if wiz.step != "done":
@@ -114,16 +118,9 @@ class AiTranslationWizard(models.TransientModel):
                 continue
             problems, hints = wiz._check()
             translators, reviewers = wiz._providers()
-            try:
-                count = self.env[wiz.model_id.model].sudo().with_context(active_test=False) \
-                    .search_count(safe_eval(wiz.domain or "[]"))
-            except Exception:  # noqa: BLE001
-                count = 0
             langs = (", ".join(wiz.target_lang_ids.mapped("code")) if wiz.kind == "translate"
                      else wiz.source_lang_id.code)
-            items = [
-                (_("What"), "%s: %s" % (wiz.model_id.name, ", ".join(wiz.field_ids.mapped("field_description")))),
-                (_("Records matching the filter"), str(count)),
+            items = wiz._what_items() + [
                 (_("Task"), dict(wiz._fields["kind"].selection)[wiz.kind]),
                 (_("Languages"), "%s → %s" % (wiz.source_lang_id.code, langs) if wiz.kind == "translate"
                  else langs),
@@ -131,6 +128,8 @@ class AiTranslationWizard(models.TransientModel):
                 (_("Reviewers"), ", ".join(p.name for p in reviewers) or "—"),
                 (_("Approval"), _("automatic when the providers agree") if wiz.auto_apply
                  else _("you approve every proposal")),
+                (_("Start"), _("automatically when records change (scheduled action must be on)")
+                 if wiz.auto_scan else _("by hand")),
             ]
             html = Markup("<table class='table table-sm'>%s</table>") % Markup("").join(
                 Markup("<tr><th>%s</th><td>%s</td></tr>") % (k, v) for k, v in items)
@@ -146,6 +145,19 @@ class AiTranslationWizard(models.TransientModel):
                     "every request. The search only lists texts; nothing is sent to a provider "
                     "until you process the proposals.", calls=per, tr=len(translators), rv=len(reviewers))
             wiz.summary = html
+
+    def _what_items(self):
+        """Summary rows that say what the rule works on."""
+        self.ensure_one()
+        try:
+            count = self.env[self.model_id.model].sudo().with_context(active_test=False) \
+                .search_count(safe_eval(self.domain or "[]"))
+        except Exception:  # noqa: BLE001
+            count = 0
+        return [
+            (_("What"), "%s: %s" % (self.model_id.name, ", ".join(self.field_ids.mapped("field_description")))),
+            (_("Records matching the filter"), str(count)),
+        ]
 
     def _check(self):
         """Return ``(problems, hints)``; problems block the creation."""
@@ -222,17 +234,14 @@ class AiTranslationWizard(models.TransientModel):
         self.target_lang_ids = langs - self.source_lang_id
         return self._reopen()
 
-    def action_create(self):
+    def _rule_values(self, name, model, fields, domain):
         self.ensure_one()
-        problems, _hints = self._check()
-        if problems:
-            raise UserError("\n".join(problems))
-        watch = self.env["ai.translation.watch"].create({
-            "name": self.name or _("AI translation rule"),
+        return {
+            "name": name,
             "kind": self.kind,
-            "model_id": self.model_id.id,
-            "domain": self.domain or "[]",
-            "field_ids": [(6, 0, self.field_ids.ids)],
+            "model_id": model.id,
+            "domain": domain,
+            "field_ids": [(6, 0, fields.ids)],
             "source_lang_id": self.source_lang_id.id,
             "text_lang_id": self.text_lang_id.id,
             "target_lang_ids": [(6, 0, self.target_lang_ids.ids)],
@@ -241,8 +250,19 @@ class AiTranslationWizard(models.TransientModel):
             "confidential": self.confidential,
             "instructions": self.instructions,
             "auto_apply": self.auto_apply,
-            "auto_scan": False,
-        })
+            "auto_scan": self.auto_scan,
+        }
+
+    def _dashboard_action(self):
+        return self.env["ir.actions.actions"]._for_xml_id("ai_translation_consensus.action_ai_translation_dashboard")
+
+    def action_create(self):
+        self.ensure_one()
+        problems, _hints = self._check()
+        if problems:
+            raise UserError("\n".join(problems))
+        watch = self.env["ai.translation.watch"].create(self._rule_values(
+            self.name or _("AI translation rule"), self.model_id, self.field_ids, self.domain or "[]"))
         created = watch._scan() if self.scan_now else 0
         if created:
             return watch.action_open_units()
