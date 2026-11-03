@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <!-- Inactive until you switch it on. It only touches rules with "Scan and process automatically". -->
+    <record id="ir_cron_ai_translation" model="ir.cron">
+        <field name="name">AI Translation: scan and process rules</field>
+        <field name="model_id" ref="model_ai_translation_watch"/>
+        <field name="state">code</field>
+        <field name="code">model._cron_run()</field>
+        <field name="user_id" ref="base.user_root"/>
+        <field name="interval_number">30</field>
+        <field name="interval_type">minutes</field>
+        <field name="active" eval="False"/>
+    </record>
+</odoo>

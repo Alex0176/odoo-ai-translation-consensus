@@ -1,0 +1,13 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_provider_user,ai.translation.provider user,model_ai_translation_provider,group_ai_translation_user,1,0,0,0
+access_provider_manager,ai.translation.provider manager,model_ai_translation_provider,group_ai_translation_manager,1,1,1,1
+access_glossary_user,ai.translation.glossary user,model_ai_translation_glossary,group_ai_translation_user,1,0,0,0
+access_glossary_manager,ai.translation.glossary manager,model_ai_translation_glossary,group_ai_translation_manager,1,1,1,1
+access_watch_user,ai.translation.watch user,model_ai_translation_watch,group_ai_translation_user,1,0,0,0
+access_watch_manager,ai.translation.watch manager,model_ai_translation_watch,group_ai_translation_manager,1,1,1,1
+access_unit_user,ai.translation.unit user,model_ai_translation_unit,group_ai_translation_user,1,1,0,0
+access_unit_manager,ai.translation.unit manager,model_ai_translation_unit,group_ai_translation_manager,1,1,1,1
+access_candidate_user,ai.translation.candidate user,model_ai_translation_candidate,group_ai_translation_user,1,0,0,0
+access_candidate_manager,ai.translation.candidate manager,model_ai_translation_candidate,group_ai_translation_manager,1,1,1,1
+access_rating_user,ai.translation.rating user,model_ai_translation_rating,group_ai_translation_user,1,0,0,0
+access_rating_manager,ai.translation.rating manager,model_ai_translation_rating,group_ai_translation_manager,1,1,1,1

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_ai_translation_glossary_list" model="ir.ui.view">
+        <field name="name">ai.translation.glossary.list</field>
+        <field name="model">ai.translation.glossary</field>
+        <field name="arch" type="xml">
+            <list editable="bottom">
+                <field name="term"/>
+                <field name="translation" placeholder="empty = keep unchanged"/>
+                <field name="lang_id"/>
+                <field name="note"/>
+                <field name="active" widget="boolean_toggle"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_ai_translation_glossary" model="ir.actions.act_window">
+        <field name="name">Glossary</field>
+        <field name="res_model">ai.translation.glossary</field>
+        <field name="view_mode">list</field>
+    </record>
+</odoo>

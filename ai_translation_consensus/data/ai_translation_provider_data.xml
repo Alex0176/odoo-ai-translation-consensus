@@ -1,0 +1,271 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <!-- Every preset is inactive. Activate it after entering a key or checking the endpoint. -->
+    <record id="provider_pollinations" model="ai.translation.provider">
+        <field name="name">Pollinations (keyless)</field>
+        <field name="active" eval="False"/>
+        <field name="sequence">10</field>
+        <field name="kind">openai_nokey</field>
+        <field name="base_url">https://text.pollinations.ai/openai</field>
+        <field name="model">openai</field>
+        <field name="role">both</field>
+        <field name="is_local" eval="False"/>
+        <field name="extra_json">{"min_interval": 46}</field>
+        <field name="note">Free public endpoint, no key. Texts leave your server; quality and availability vary. The anonymous tier allows one reply every 45 seconds, so every call waits for that.</field>
+    </record>
+    <record id="provider_ollama" model="ai.translation.provider">
+        <field name="name">Ollama (own server)</field>
+        <field name="active" eval="False"/>
+        <field name="sequence">11</field>
+        <field name="kind">openai_nokey</field>
+        <field name="base_url">http://localhost:11434/v1</field>
+        <field name="model">llama3.1</field>
+        <field name="role">both</field>
+        <field name="is_local" eval="True"/>
+        <field name="note">Models on your own hardware. Texts stay on your server, so it is allowed for confidential rules.</field>
+    </record>
+    <record id="provider_claude_cli" model="ai.translation.provider">
+        <field name="name">Claude Code CLI (signed-in)</field>
+        <field name="active" eval="False"/>
+        <field name="sequence">12</field>
+        <field name="kind">command</field>
+        <field name="command">claude -p --tools "" --no-session-persistence</field>
+        <field name="role">both</field>
+        <field name="is_local" eval="False"/>
+        <field name="note">Uses a signed-in command line tool, no key stored here. Needs the system parameter ai_translation_consensus.allow_command = True. Set the command line below.</field>
+    </record>
+    <record id="provider_mymemory" model="ai.translation.provider">
+        <field name="name">MyMemory (keyless)</field>
+        <field name="active" eval="False"/>
+        <field name="sequence">13</field>
+        <field name="kind">mymemory</field>
+        <field name="base_url">https://api.mymemory.translated.net</field>
+        <field name="role">translate</field>
+        <field name="is_local" eval="False"/>
+        <field name="note">Free, small daily quota, translates only.</field>
+    </record>
+    <record id="provider_lingva" model="ai.translation.provider">
+        <field name="name">Lingva (keyless)</field>
+        <field name="active" eval="False"/>
+        <field name="sequence">14</field>
+        <field name="kind">lingva</field>
+        <field name="base_url">https://lingva.ml</field>
+        <field name="role">translate</field>
+        <field name="is_local" eval="False"/>
+        <field name="note">Public front end of a web translator, translates only; instances come and go.</field>
+    </record>
+    <record id="provider_libretranslate" model="ai.translation.provider">
+        <field name="name">LibreTranslate (own server)</field>
+        <field name="active" eval="False"/>
+        <field name="sequence">15</field>
+        <field name="kind">libretranslate</field>
+        <field name="base_url">http://localhost:5000</field>
+        <field name="role">translate</field>
+        <field name="is_local" eval="True"/>
+        <field name="note">Self-hosted machine translation, translates only.</field>
+    </record>
+    <record id="provider_anthropic" model="ai.translation.provider">
+        <field name="name">Anthropic Claude</field>
+        <field name="active" eval="False"/>
+        <field name="sequence">20</field>
+        <field name="kind">anthropic</field>
+        <field name="base_url">https://api.anthropic.com/v1</field>
+        <field name="model">claude-sonnet-5</field>
+        <field name="api_key_env">ANTHROPIC_API_KEY</field>
+        <field name="role">both</field>
+        <field name="is_local" eval="False"/>
+    </record>
+    <record id="provider_openai" model="ai.translation.provider">
+        <field name="name">OpenAI</field>
+        <field name="active" eval="False"/>
+        <field name="sequence">21</field>
+        <field name="kind">openai</field>
+        <field name="base_url">https://api.openai.com/v1</field>
+        <field name="model">gpt-4o</field>
+        <field name="api_key_env">OPENAI_API_KEY</field>
+        <field name="role">both</field>
+        <field name="is_local" eval="False"/>
+    </record>
+    <record id="provider_gemini" model="ai.translation.provider">
+        <field name="name">Google Gemini</field>
+        <field name="active" eval="False"/>
+        <field name="sequence">22</field>
+        <field name="kind">gemini</field>
+        <field name="base_url">https://generativelanguage.googleapis.com/v1beta</field>
+        <field name="model">gemini-2.5-flash</field>
+        <field name="api_key_env">GEMINI_API_KEY</field>
+        <field name="role">both</field>
+        <field name="is_local" eval="False"/>
+    </record>
+    <record id="provider_mistral" model="ai.translation.provider">
+        <field name="name">Mistral</field>
+        <field name="active" eval="False"/>
+        <field name="sequence">23</field>
+        <field name="kind">openai</field>
+        <field name="base_url">https://api.mistral.ai/v1</field>
+        <field name="model">mistral-large-latest</field>
+        <field name="api_key_env">MISTRAL_API_KEY</field>
+        <field name="role">both</field>
+        <field name="is_local" eval="False"/>
+    </record>
+    <record id="provider_deepseek" model="ai.translation.provider">
+        <field name="name">DeepSeek</field>
+        <field name="active" eval="False"/>
+        <field name="sequence">24</field>
+        <field name="kind">openai</field>
+        <field name="base_url">https://api.deepseek.com/v1</field>
+        <field name="model">deepseek-chat</field>
+        <field name="api_key_env">DEEPSEEK_API_KEY</field>
+        <field name="role">both</field>
+        <field name="is_local" eval="False"/>
+    </record>
+    <record id="provider_xai" model="ai.translation.provider">
+        <field name="name">xAI Grok</field>
+        <field name="active" eval="False"/>
+        <field name="sequence">25</field>
+        <field name="kind">openai</field>
+        <field name="base_url">https://api.x.ai/v1</field>
+        <field name="model">grok-4</field>
+        <field name="api_key_env">XAI_API_KEY</field>
+        <field name="role">both</field>
+        <field name="is_local" eval="False"/>
+    </record>
+    <record id="provider_groq" model="ai.translation.provider">
+        <field name="name">Groq</field>
+        <field name="active" eval="False"/>
+        <field name="sequence">26</field>
+        <field name="kind">openai</field>
+        <field name="base_url">https://api.groq.com/openai/v1</field>
+        <field name="model">llama-3.3-70b-versatile</field>
+        <field name="api_key_env">GROQ_API_KEY</field>
+        <field name="role">both</field>
+        <field name="is_local" eval="False"/>
+    </record>
+    <record id="provider_openrouter" model="ai.translation.provider">
+        <field name="name">OpenRouter</field>
+        <field name="active" eval="False"/>
+        <field name="sequence">27</field>
+        <field name="kind">openai</field>
+        <field name="base_url">https://openrouter.ai/api/v1</field>
+        <field name="model">meta-llama/llama-3.3-70b-instruct</field>
+        <field name="api_key_env">OPENROUTER_API_KEY</field>
+        <field name="role">both</field>
+        <field name="is_local" eval="False"/>
+        <field name="note">One key, many models.</field>
+    </record>
+    <record id="provider_together" model="ai.translation.provider">
+        <field name="name">Together AI</field>
+        <field name="active" eval="False"/>
+        <field name="sequence">28</field>
+        <field name="kind">openai</field>
+        <field name="base_url">https://api.together.xyz/v1</field>
+        <field name="model">meta-llama/Llama-3.3-70B-Instruct-Turbo</field>
+        <field name="api_key_env">TOGETHER_API_KEY</field>
+        <field name="role">both</field>
+        <field name="is_local" eval="False"/>
+    </record>
+    <record id="provider_cerebras" model="ai.translation.provider">
+        <field name="name">Cerebras</field>
+        <field name="active" eval="False"/>
+        <field name="sequence">29</field>
+        <field name="kind">openai</field>
+        <field name="base_url">https://api.cerebras.ai/v1</field>
+        <field name="model">llama-3.3-70b</field>
+        <field name="api_key_env">CEREBRAS_API_KEY</field>
+        <field name="role">both</field>
+        <field name="is_local" eval="False"/>
+    </record>
+    <record id="provider_qwen" model="ai.translation.provider">
+        <field name="name">Alibaba Qwen</field>
+        <field name="active" eval="False"/>
+        <field name="sequence">30</field>
+        <field name="kind">openai</field>
+        <field name="base_url">https://dashscope-intl.aliyuncs.com/compatible-mode/v1</field>
+        <field name="model">qwen-plus</field>
+        <field name="api_key_env">DASHSCOPE_API_KEY</field>
+        <field name="role">both</field>
+        <field name="is_local" eval="False"/>
+    </record>
+    <record id="provider_moonshot" model="ai.translation.provider">
+        <field name="name">Moonshot Kimi</field>
+        <field name="active" eval="False"/>
+        <field name="sequence">31</field>
+        <field name="kind">openai</field>
+        <field name="base_url">https://api.moonshot.ai/v1</field>
+        <field name="model">kimi-k2-0905-preview</field>
+        <field name="api_key_env">MOONSHOT_API_KEY</field>
+        <field name="role">both</field>
+        <field name="is_local" eval="False"/>
+    </record>
+    <record id="provider_github_models" model="ai.translation.provider">
+        <field name="name">GitHub Models</field>
+        <field name="active" eval="False"/>
+        <field name="sequence">32</field>
+        <field name="kind">openai</field>
+        <field name="base_url">https://models.github.ai/inference</field>
+        <field name="model">openai/gpt-4.1</field>
+        <field name="api_key_env">GITHUB_TOKEN</field>
+        <field name="role">both</field>
+        <field name="is_local" eval="False"/>
+        <field name="note">Free tier with a GitHub token.</field>
+    </record>
+    <record id="provider_huggingface" model="ai.translation.provider">
+        <field name="name">Hugging Face Inference</field>
+        <field name="active" eval="False"/>
+        <field name="sequence">33</field>
+        <field name="kind">openai</field>
+        <field name="base_url">https://router.huggingface.co/v1</field>
+        <field name="model">meta-llama/Llama-3.3-70B-Instruct</field>
+        <field name="api_key_env">HF_TOKEN</field>
+        <field name="role">both</field>
+        <field name="is_local" eval="False"/>
+    </record>
+    <record id="provider_cohere" model="ai.translation.provider">
+        <field name="name">Cohere</field>
+        <field name="active" eval="False"/>
+        <field name="sequence">34</field>
+        <field name="kind">cohere</field>
+        <field name="base_url">https://api.cohere.com/v2</field>
+        <field name="model">command-a-03-2025</field>
+        <field name="api_key_env">COHERE_API_KEY</field>
+        <field name="role">both</field>
+        <field name="is_local" eval="False"/>
+    </record>
+    <record id="provider_deepl" model="ai.translation.provider">
+        <field name="name">DeepL</field>
+        <field name="active" eval="False"/>
+        <field name="sequence">40</field>
+        <field name="kind">deepl</field>
+        <field name="api_key_env">DEEPL_API_KEY</field>
+        <field name="role">translate</field>
+        <field name="is_local" eval="False"/>
+        <field name="note">Keys ending in :fx use the free endpoint. Translates only.</field>
+    </record>
+    <record id="provider_google" model="ai.translation.provider">
+        <field name="name">Google Cloud Translation</field>
+        <field name="active" eval="False"/>
+        <field name="sequence">41</field>
+        <field name="kind">google</field>
+        <field name="base_url">https://translation.googleapis.com/language/translate/v2</field>
+        <field name="api_key_env">GOOGLE_TRANSLATE_API_KEY</field>
+        <field name="role">translate</field>
+        <field name="is_local" eval="False"/>
+        <field name="note">Translates only.</field>
+    </record>
+    <record id="provider_azure" model="ai.translation.provider">
+        <field name="name">Microsoft Translator</field>
+        <field name="active" eval="False"/>
+        <field name="sequence">42</field>
+        <field name="kind">azure</field>
+        <field name="base_url">https://api.cognitive.microsofttranslator.com</field>
+        <field name="api_key_env">AZURE_TRANSLATOR_KEY</field>
+        <field name="role">translate</field>
+        <field name="is_local" eval="False"/>
+        <field name="note">Set the region below. Translates only.</field>
+    </record>
+
+    <record id="param_allow_command" model="ir.config_parameter">
+        <field name="key">ai_translation_consensus.allow_command</field>
+        <field name="value">False</field>
+    </record>
+</odoo>

@@ -1,0 +1,1258 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* ai_translation_consensus
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 19.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-11-03 17:28+0000\n"
+"PO-Revision-Date: 2026-11-03 17:28+0000\n"
+"Last-Translator: Biricon IT Services GmbH\n"
+"Language-Team: German\n"
+"Language: de\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: \n"
+
+#. module: ai_translation_consensus
+#. odoo-python
+#: code:addons/ai_translation_consensus/models/ai_translation_unit.py:0
+msgid "%(ok)s applied, %(failed)s failed."
+msgstr "%(ok)s übernommen, %(failed)s fehlgeschlagen."
+
+#. module: ai_translation_consensus
+#. odoo-python
+#: code:addons/ai_translation_consensus/models/ai_translation_watch.py:0
+msgid "%s new proposals queued."
+msgstr "%s neue Vorschläge eingereiht."
+
+#. module: ai_translation_consensus
+#. odoo-python
+#: code:addons/ai_translation_consensus/models/ai_translation_unit.py:0
+#: code:addons/ai_translation_consensus/models/ai_translation_watch.py:0
+msgid "%s proposals processed."
+msgstr "%s Vorschläge verarbeitet."
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_rating__naturalness
+msgid "1-10: does it read like a native speaker wrote it?"
+msgstr "1-10: Klingt es, als hätte es ein Muttersprachler geschrieben?"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_rating__accuracy
+msgid "1-10: is the meaning conveyed completely and correctly?"
+msgstr "1-10: Ist die Bedeutung vollständig und richtig wiedergegeben?"
+
+#. module: ai_translation_consensus
+#: model:ir.ui.menu,name:ai_translation_consensus.menu_ai_translation_root
+#: model:res.groups.privilege,name:ai_translation_consensus.privilege_ai_translation
+msgid "AI Translation"
+msgstr "KI-Übersetzung"
+
+#. module: ai_translation_consensus
+#: model:ir.actions.server,name:ai_translation_consensus.ir_cron_ai_translation_ir_actions_server
+msgid "AI Translation: scan and process rules"
+msgstr "KI-Übersetzung: Regeln prüfen und abarbeiten"
+
+#. module: ai_translation_consensus
+#. odoo-python
+#: code:addons/ai_translation_consensus/models/ai_translation_unit.py:0
+msgid "AI translation"
+msgstr "KI-Übersetzung"
+
+#. module: ai_translation_consensus
+#: model:ir.model,name:ai_translation_consensus.model_ai_translation_candidate
+msgid "AI translation candidate"
+msgstr "KI-Übersetzung: Kandidat"
+
+#. module: ai_translation_consensus
+#: model:ir.model,name:ai_translation_consensus.model_ai_translation_unit
+msgid "AI translation proposal"
+msgstr "KI-Übersetzung: Vorschlag"
+
+#. module: ai_translation_consensus
+#: model:ir.model,name:ai_translation_consensus.model_ai_translation_provider
+msgid "AI translation provider"
+msgstr "KI-Übersetzung: Anbieter"
+
+#. module: ai_translation_consensus
+#: model:ir.model,name:ai_translation_consensus.model_ai_translation_rating
+msgid "AI translation rating"
+msgstr "KI-Übersetzung: Bewertung"
+
+#. module: ai_translation_consensus
+#: model:ir.model,name:ai_translation_consensus.model_ai_translation_watch
+msgid "AI translation rule"
+msgstr "KI-Übersetzung: Regel"
+
+#. module: ai_translation_consensus
+#: model_terms:ir.ui.view,arch_db:ai_translation_consensus.view_ai_translation_provider_form
+msgid "Access"
+msgstr "Zugriff"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_rating__accuracy
+msgid "Accuracy"
+msgstr "Genauigkeit"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_glossary__active
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_provider__active
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_watch__active
+msgid "Active"
+msgstr "Aktiv"
+
+#. module: ai_translation_consensus
+#: model_terms:ir.ui.view,arch_db:ai_translation_consensus.view_ai_translation_provider_form
+msgid "Advanced"
+msgstr "Erweitert"
+
+#. module: ai_translation_consensus
+#: model_terms:ir.ui.view,arch_db:ai_translation_consensus.view_ai_translation_unit_search
+msgid "Agreed"
+msgstr "Einig"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields.selection,name:ai_translation_consensus.selection__ai_translation_unit__state__consensus
+msgid "Agreed - ready to apply"
+msgstr "Einigung erzielt - bereit zur Übernahme"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_unit__agreement
+msgid "Agreement"
+msgstr "Einigkeit"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_watch__threshold
+msgid "Agreement needed"
+msgstr "Nötige Einigkeit"
+
+#. module: ai_translation_consensus
+#. odoo-python
+#: code:addons/ai_translation_consensus/models/ai_translation_watch.py:0
+msgid "Agreement needed must be between 0 and 1."
+msgstr "Die nötige Einigkeit muss zwischen 0 und 1 liegen."
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_provider__api_key
+msgid "Api Key"
+msgstr "API-Schlüssel"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields.selection,name:ai_translation_consensus.selection__ai_translation_unit__state__applied
+#: model_terms:ir.ui.view,arch_db:ai_translation_consensus.view_ai_translation_unit_search
+msgid "Applied"
+msgstr "Übernommen"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_unit__applied_date
+msgid "Applied Date"
+msgstr "Übernommen am"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_unit__applied_uid
+msgid "Applied Uid"
+msgstr "Übernommen von"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_watch__auto_apply
+msgid "Apply consensus automatically"
+msgstr "Einigung automatisch übernehmen"
+
+#. module: ai_translation_consensus
+#: model_terms:ir.ui.view,arch_db:ai_translation_consensus.view_ai_translation_unit_form
+msgid "Apply my wording"
+msgstr "Meine Formulierung übernehmen"
+
+#. module: ai_translation_consensus
+#: model_terms:ir.ui.view,arch_db:ai_translation_consensus.view_ai_translation_unit_form
+msgid "Apply proposal"
+msgstr "Vorschlag übernehmen"
+
+#. module: ai_translation_consensus
+#: model:ir.actions.server,name:ai_translation_consensus.server_action_unit_approve
+msgid "Apply proposals"
+msgstr "Vorschläge übernehmen"
+
+#. module: ai_translation_consensus
+#: model_terms:ir.ui.view,arch_db:ai_translation_consensus.view_ai_translation_provider_form
+msgid "Archived"
+msgstr "Archiviert"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_candidate__authors
+msgid "Authors"
+msgstr "Autoren"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_watch__exclude_self
+msgid "Authors do not vote for their own text"
+msgstr "Autoren stimmen nicht für den eigenen Text"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_candidate__avg_score
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_unit__avg_score
+msgid "Average score"
+msgstr "Durchschnittliche Note"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_watch__min_score
+msgid "Average score (1-10) the best text needs."
+msgstr "Durchschnittliche Note (1-10), die der beste Text erreichen muss."
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_provider__base_url
+msgid "Base Url"
+msgstr "Basis-URL"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_watch__batch_size
+msgid "Batch Size"
+msgstr "Stapelgröße"
+
+#. module: ai_translation_consensus
+#. odoo-python
+#: code:addons/ai_translation_consensus/models/ai_translation_watch.py:0
+msgid "Batch processed"
+msgstr "Stapel verarbeitet"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_candidate__is_winner
+msgid "Best"
+msgstr "Beste"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_glossary__translation
+msgid ""
+"Binding translation. Leave empty to keep the term unchanged (brand and "
+"product names)."
+msgstr ""
+"Verbindliche Übersetzung. Leer lassen, damit der Begriff unverändert bleibt "
+"(Marken- und Produktnamen)."
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_candidate__problems
+msgid "Blocking problems"
+msgstr "Blockierende Probleme"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_provider__can_review
+msgid "Can Review"
+msgstr "Kann prüfen"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_rating__candidate_id
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_unit__candidate_ids
+msgid "Candidate"
+msgstr "Kandidat"
+
+#. module: ai_translation_consensus
+#: model_terms:ir.ui.view,arch_db:ai_translation_consensus.view_ai_translation_unit_form
+msgid "Candidates"
+msgstr "Kandidaten"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_provider__command
+msgid "Command"
+msgstr "Befehl"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_provider__command
+msgid ""
+"Command line for the 'local command' kind. The prompt is passed on stdin, "
+"the answer is read from stdout."
+msgstr ""
+"Kommandozeile für die Art 'Lokaler Befehl'. Die Anfrage geht über stdin, die"
+" Antwort wird von stdout gelesen."
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_watch__confidential
+msgid "Confidential"
+msgstr "Vertraulich"
+
+#. module: ai_translation_consensus
+#: model_terms:ir.ui.view,arch_db:ai_translation_consensus.view_ai_translation_watch_form
+msgid "Consensus"
+msgstr "Einigung"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_watch__review_unanimous
+msgid "Costs one more call per provider; off by default."
+msgstr "Kostet einen weiteren Aufruf je Anbieter; standardmäßig aus."
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_candidate__create_uid
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_glossary__create_uid
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_provider__create_uid
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_rating__create_uid
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_unit__create_uid
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_watch__create_uid
+msgid "Created by"
+msgstr "Erstellt von"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_candidate__create_date
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_glossary__create_date
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_provider__create_date
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_rating__create_date
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_unit__create_date
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_watch__create_date
+msgid "Created on"
+msgstr "Erstellt am"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_unit__ctx_after
+msgid "Ctx After"
+msgstr "Kontext danach"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_unit__ctx_before
+msgid "Ctx Before"
+msgstr "Kontext davor"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_candidate__display_name
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_glossary__display_name
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_provider__display_name
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_rating__display_name
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_unit__display_name
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_watch__display_name
+msgid "Display Name"
+msgstr "Anzeigename"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_watch__domain
+msgid "Domain"
+msgstr "Domain"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_watch__provider_ids
+msgid "Empty = all active providers."
+msgstr "Leer = alle aktiven Anbieter."
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_glossary__lang_id
+msgid "Empty = applies to every target language."
+msgstr "Leer = gilt für jede Zielsprache."
+
+#. module: ai_translation_consensus
+#. odoo-python
+#: code:addons/ai_translation_consensus/models/ai_translation_unit.py:0
+msgid "Enter your own wording first."
+msgstr "Geben Sie zuerst Ihre eigene Formulierung ein."
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_unit__error
+#: model:ir.model.fields.selection,name:ai_translation_consensus.selection__ai_translation_provider__last_status__error
+msgid "Error"
+msgstr "Fehler"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_provider__extra_json
+msgid "Extra options (JSON)"
+msgstr "Zusätzliche Optionen (JSON)"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields.selection,name:ai_translation_consensus.selection__ai_translation_unit__state__failed
+#: model_terms:ir.ui.view,arch_db:ai_translation_consensus.view_ai_translation_unit_search
+msgid "Failed"
+msgstr "Fehlgeschlagen"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_rating__favourite
+msgid "Favourite"
+msgstr "Favorit"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_candidate__vote_share
+msgid "Favourite votes"
+msgstr "Favoritenstimmen"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_unit__field_label
+msgid "Field Label"
+msgstr "Feldbezeichnung"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_unit__field_name
+msgid "Field Name"
+msgstr "Feldname"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_watch__field_ids
+msgid "Fields"
+msgstr "Felder"
+
+#. module: ai_translation_consensus
+#: model_terms:ir.ui.view,arch_db:ai_translation_consensus.view_ai_translation_watch_form
+msgid "Formal address, IT company, keep product names ..."
+msgstr "Sie-Form, IT-Unternehmen, Produktnamen beibehalten ..."
+
+#. module: ai_translation_consensus
+#: model:ir.actions.act_window,name:ai_translation_consensus.action_ai_translation_glossary
+#: model:ir.ui.menu,name:ai_translation_consensus.menu_ai_translation_glossary
+msgid "Glossary"
+msgstr "Glossar"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_watch__context_chars
+msgid "How much of the surrounding page text each provider sees."
+msgstr "Wie viel vom umgebenden Seitentext jeder Anbieter sieht."
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_candidate__id
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_glossary__id
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_provider__id
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_rating__id
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_unit__id
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_watch__id
+msgid "ID"
+msgstr ""
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_watch__instructions
+msgid "Instructions"
+msgstr "Anweisungen"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_unit__is_term
+msgid "Is Term"
+msgstr "Ist Textbaustein"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_candidate__key
+msgid "Key"
+msgstr "Schlüssel"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_provider__api_key_env
+msgid "Key from environment variable"
+msgstr "Schlüssel aus Umgebungsvariable"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_provider__kind
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_unit__kind
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_watch__kind
+msgid "Kind"
+msgstr "Art"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_unit__lang
+#: model_terms:ir.ui.view,arch_db:ai_translation_consensus.view_ai_translation_unit_search
+msgid "Language"
+msgstr "Sprache"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_unit__lang
+msgid ""
+"Language the result is written to. For proofreading the source language."
+msgstr ""
+"Sprache, in die das Ergebnis geschrieben wird. Beim Korrekturlesen die "
+"Quellsprache."
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_provider__last_check
+msgid "Last Check"
+msgstr "Letzte Prüfung"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_provider__last_message
+msgid "Last Message"
+msgstr "Letzte Meldung"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_watch__last_scan
+msgid "Last Scan"
+msgstr "Letzter Suchlauf"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_provider__last_status
+msgid "Last Status"
+msgstr "Letzter Status"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_candidate__write_uid
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_glossary__write_uid
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_provider__write_uid
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_rating__write_uid
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_unit__write_uid
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_watch__write_uid
+msgid "Last Updated by"
+msgstr "Zuletzt aktualisiert von"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_candidate__write_date
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_glossary__write_date
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_provider__write_date
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_rating__write_date
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_unit__write_date
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_watch__write_date
+msgid "Last Updated on"
+msgstr "Zuletzt aktualisiert am"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_provider__base_url
+msgid "Leave empty for the default endpoint of the kind."
+msgstr "Leer lassen für den Standard-Endpunkt dieser Art."
+
+#. module: ai_translation_consensus
+#: model_terms:ir.ui.view,arch_db:ai_translation_consensus.view_ai_translation_watch_form
+msgid ""
+"Leave the providers empty to use every active provider that has what it\n"
+"                                needs (a key, if it needs one). Services that only translate\n"
+"                                (DeepL, Google, ...) cannot review or proofread."
+msgstr ""
+"Ohne Auswahl werden alle aktiven Anbieter verwendet, die haben, was sie brauchen\n"
+"                                (einen Schlüssel, falls nötig). Dienste, die nur übersetzen\n"
+"                                (DeepL, Google, ...), können weder prüfen noch Korrektur lesen."
+
+#. module: ai_translation_consensus
+#: model:res.groups,name:ai_translation_consensus.group_ai_translation_manager
+msgid "Manager"
+msgstr "Verwalter"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_watch__min_score
+msgid "Minimum score"
+msgstr "Mindestnote"
+
+#. module: ai_translation_consensus
+#. odoo-python
+#: code:addons/ai_translation_consensus/models/ai_translation_watch.py:0
+msgid "Minimum score must be between 1 and 10."
+msgstr "Die Mindestnote muss zwischen 1 und 10 liegen."
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields.selection,name:ai_translation_consensus.selection__ai_translation_watch__mode__outdated
+msgid "Missing and outdated translations"
+msgstr "Fehlende und veraltete Übersetzungen"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_watch__mode
+msgid "Mode"
+msgstr "Modus"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_provider__model
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_watch__model_id
+msgid "Model"
+msgstr "Modell"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_unit__model_name
+msgid "Model Name"
+msgstr "Modellname"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_provider__model
+msgid "Model name of the service (large language models only)."
+msgstr "Modellname beim Dienst (nur bei großen Sprachmodellen)."
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_unit__manual_text
+msgid "My wording"
+msgstr "Meine Formulierung"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_provider__name
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_watch__name
+msgid "Name"
+msgstr "Name"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_provider__api_key_env
+msgid ""
+"Name of an environment variable of the Odoo process that holds the key. Used"
+" when the key field is empty."
+msgstr ""
+"Name einer Umgebungsvariable des Odoo-Prozesses, die den Schlüssel enthält. "
+"Wird verwendet, wenn das Schlüsselfeld leer ist."
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_rating__naturalness
+msgid "Naturalness"
+msgstr "Natürlichkeit"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_provider__needs_key
+msgid "Needs Key"
+msgstr "Braucht Schlüssel"
+
+#. module: ai_translation_consensus
+#: model_terms:ir.ui.view,arch_db:ai_translation_consensus.view_ai_translation_unit_search
+msgid "Needs a human"
+msgstr "Braucht einen Menschen"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields.selection,name:ai_translation_consensus.selection__ai_translation_unit__state__review
+msgid "Needs a human decision"
+msgstr "Braucht eine menschliche Entscheidung"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_watch__max_new_units
+msgid "New proposals per scan"
+msgstr "Neue Vorschläge je Suchlauf"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_glossary__note
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_provider__note
+msgid "Note"
+msgstr "Notiz"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields.selection,name:ai_translation_consensus.selection__ai_translation_unit__state__unchanged
+msgid "Nothing to change"
+msgstr "Nichts zu ändern"
+
+#. module: ai_translation_consensus
+#. odoo-python
+#: code:addons/ai_translation_consensus/models/ai_translation_watch.py:0
+msgid "Nothing to process. Run a scan first."
+msgstr "Nichts zu verarbeiten. Starten Sie zuerst einen Suchlauf."
+
+#. module: ai_translation_consensus
+#: model_terms:ir.ui.view,arch_db:ai_translation_consensus.view_ai_translation_provider_form
+msgid "OPENAI_API_KEY"
+msgstr ""
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_watch__auto_apply
+msgid "Off: every proposal waits for a human to approve it."
+msgstr "Aus: Jeder Vorschlag wartet auf die Freigabe durch einen Menschen."
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_unit__is_term
+msgid "One term of a markup field (HTML/XML) instead of the whole value."
+msgstr ""
+"Ein Textbaustein eines Auszeichnungsfelds (HTML/XML) statt des ganzen Werts."
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields.selection,name:ai_translation_consensus.selection__ai_translation_watch__mode__missing
+msgid "Only missing translations"
+msgstr "Nur fehlende Übersetzungen"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_watch__confidential
+msgid "Only providers marked as running on own infrastructure see the texts."
+msgstr "Nur Anbieter, die auf eigener Infrastruktur laufen, sehen die Texte."
+
+#. module: ai_translation_consensus
+#. odoo-python
+#: code:addons/ai_translation_consensus/models/ai_translation_unit.py:0
+msgid "Only queued proposals can be processed."
+msgstr "Nur eingereihte Vorschläge können verarbeitet werden."
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_watch__open_count
+msgid "Open Count"
+msgstr "Offene"
+
+#. module: ai_translation_consensus
+#: model_terms:ir.ui.view,arch_db:ai_translation_consensus.view_ai_translation_unit_form
+msgid "Open record"
+msgstr "Datensatz öffnen"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_provider__extra_json
+msgid "Optional, e.g. {\"body\": {\"temperature\": 0.2}, \"headers\": {}}."
+msgstr "Optional, z. B. {\"body\": {\"temperature\": 0.2}, \"headers\": {}}."
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_candidate__origin
+msgid "Origin"
+msgstr "Herkunft"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields.selection,name:ai_translation_consensus.selection__ai_translation_candidate__origin__original
+msgid "Original text"
+msgstr "Originaltext"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_watch__mode
+msgid ""
+"Outdated: the source text of a plain (non term-based) field changed after "
+"the translation was applied and nobody edited the translation since."
+msgstr ""
+"Veraltet: Der Quelltext eines einfachen Felds (ohne Textbausteine) hat sich "
+"nach der Übernahme der Übersetzung geändert, und niemand hat die Übersetzung"
+" seither bearbeitet."
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_watch__context_chars
+msgid "Page context (characters)"
+msgstr "Seitenkontext (Zeichen)"
+
+#. module: ai_translation_consensus
+#: model_terms:ir.ui.view,arch_db:ai_translation_consensus.view_ai_translation_unit_form
+msgid "Process now"
+msgstr "Jetzt verarbeiten"
+
+#. module: ai_translation_consensus
+#: model_terms:ir.ui.view,arch_db:ai_translation_consensus.view_ai_translation_watch_form
+msgid "Process one batch"
+msgstr "Einen Stapel verarbeiten"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields.selection,name:ai_translation_consensus.selection__ai_translation_watch__kind__proofread
+msgid "Proofread the source language"
+msgstr "Quellsprache Korrektur lesen"
+
+#. module: ai_translation_consensus
+#: model_terms:ir.ui.view,arch_db:ai_translation_consensus.view_ai_translation_unit_search
+msgid "Proofreading"
+msgstr "Korrekturlesen"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_unit__final_text
+msgid "Proposal"
+msgstr "Vorschlag"
+
+#. module: ai_translation_consensus
+#: model:ir.actions.act_window,name:ai_translation_consensus.action_ai_translation_unit
+#: model:ir.ui.menu,name:ai_translation_consensus.menu_ai_translation_units
+#: model_terms:ir.ui.view,arch_db:ai_translation_consensus.view_ai_translation_watch_form
+msgid "Proposals"
+msgstr "Vorschläge"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_watch__max_units_per_run
+msgid "Proposals processed per cron run"
+msgstr "Vorschläge je Cron-Lauf"
+
+#. module: ai_translation_consensus
+#: model:ir.actions.act_window,name:ai_translation_consensus.action_ai_translation_provider
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_watch__provider_ids
+#: model:ir.ui.menu,name:ai_translation_consensus.menu_ai_translation_providers
+#: model_terms:ir.ui.view,arch_db:ai_translation_consensus.view_ai_translation_watch_form
+msgid "Providers"
+msgstr "Anbieter"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_candidate__authors
+msgid "Providers that wrote exactly this text."
+msgstr "Anbieter, die genau diesen Text geschrieben haben."
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields.selection,name:ai_translation_consensus.selection__ai_translation_unit__state__new
+#: model_terms:ir.ui.view,arch_db:ai_translation_consensus.view_ai_translation_unit_search
+msgid "Queued"
+msgstr "Eingereiht"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_candidate__rank_score
+msgid "Rank Score"
+msgstr "Rangwert"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_candidate__rating_ids
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_unit__rating_ids
+msgid "Rating"
+msgstr "Bewertung"
+
+#. module: ai_translation_consensus
+#: model_terms:ir.ui.view,arch_db:ai_translation_consensus.view_ai_translation_unit_form
+msgid "Ratings"
+msgstr "Bewertungen"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_unit__reason
+msgid "Reason"
+msgstr "Grund"
+
+#. module: ai_translation_consensus
+#: model_terms:ir.ui.view,arch_db:ai_translation_consensus.view_ai_translation_unit_search
+msgid "Record"
+msgstr "Datensatz"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_unit__record_name
+msgid "Record Name"
+msgstr "Datensatzname"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_watch__max_records
+msgid "Records per scan"
+msgstr "Datensätze je Suchlauf"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_watch__domain
+msgid "Records to look at."
+msgstr "Zu prüfende Datensätze."
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_provider__region
+msgid "Region"
+msgstr "Region"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_provider__region
+msgid "Region header (Microsoft Translator)."
+msgstr "Regions-Header (Microsoft Translator)."
+
+#. module: ai_translation_consensus
+#: model_terms:ir.ui.view,arch_db:ai_translation_consensus.view_ai_translation_unit_form
+msgid "Reject"
+msgstr "Ablehnen"
+
+#. module: ai_translation_consensus
+#: model:ir.actions.server,name:ai_translation_consensus.server_action_unit_reject
+msgid "Reject proposals"
+msgstr "Vorschläge ablehnen"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields.selection,name:ai_translation_consensus.selection__ai_translation_unit__state__rejected
+msgid "Rejected"
+msgstr "Abgelehnt"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_rating__remark
+msgid "Remark"
+msgstr "Anmerkung"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_unit__res_id
+msgid "Res"
+msgstr "Datensatz-ID"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_unit__result_hash
+msgid "Result Hash"
+msgstr "Ergebnis-Hash"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_watch__review_unanimous
+msgid "Review even when all translators agree"
+msgstr "Auch prüfen, wenn alle Übersetzer übereinstimmen"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_watch__max_rounds
+msgid "Review rounds"
+msgstr "Prüfrunden"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_rating__reviewer
+#: model:res.groups,name:ai_translation_consensus.group_ai_translation_user
+msgid "Reviewer"
+msgstr "Prüfer"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_candidate__remarks
+msgid "Reviewer remarks"
+msgstr "Anmerkungen der Prüfer"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields.selection,name:ai_translation_consensus.selection__ai_translation_candidate__origin__revision
+msgid "Reviewer suggestion"
+msgstr "Vorschlag eines Prüfers"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields.selection,name:ai_translation_consensus.selection__ai_translation_provider__role__review
+msgid "Reviews only"
+msgstr "Nur prüfen"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_provider__role
+#: model_terms:ir.ui.view,arch_db:ai_translation_consensus.view_ai_translation_provider_form
+msgid "Role"
+msgstr "Rolle"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_rating__round_no
+msgid "Round"
+msgstr "Runde"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_unit__rounds
+msgid "Rounds"
+msgstr "Runden"
+
+#. module: ai_translation_consensus
+#. odoo-python
+#: code:addons/ai_translation_consensus/models/ai_translation_watch.py:0
+msgid "Rounds and batch size must be at least 1."
+msgstr "Runden und Stapelgröße müssen mindestens 1 sein."
+
+#. module: ai_translation_consensus
+#: model_terms:ir.ui.view,arch_db:ai_translation_consensus.view_ai_translation_unit_search
+msgid "Rule"
+msgstr "Regel"
+
+#. module: ai_translation_consensus
+#: model:ir.actions.act_window,name:ai_translation_consensus.action_ai_translation_watch
+#: model:ir.ui.menu,name:ai_translation_consensus.menu_ai_translation_watches
+msgid "Rules"
+msgstr "Regeln"
+
+#. module: ai_translation_consensus
+#: model:ir.actions.server,name:ai_translation_consensus.server_action_unit_requeue
+#: model_terms:ir.ui.view,arch_db:ai_translation_consensus.view_ai_translation_unit_form
+msgid "Run again"
+msgstr "Erneut ausführen"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_provider__is_local
+msgid "Runs on own infrastructure"
+msgstr "Läuft auf eigener Infrastruktur"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_watch__scan_cursor
+msgid "Scan Cursor"
+msgstr "Suchlauf-Position"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_watch__auto_scan
+msgid "Scan and process automatically (cron)"
+msgstr "Automatisch suchen und verarbeiten (Cron)"
+
+#. module: ai_translation_consensus
+#. odoo-python
+#: code:addons/ai_translation_consensus/models/ai_translation_watch.py:0
+msgid "Scan finished"
+msgstr "Suchlauf beendet"
+
+#. module: ai_translation_consensus
+#: model_terms:ir.ui.view,arch_db:ai_translation_consensus.view_ai_translation_watch_form
+msgid "Scan now"
+msgstr "Jetzt suchen"
+
+#. module: ai_translation_consensus
+#: model_terms:ir.ui.view,arch_db:ai_translation_consensus.view_ai_translation_watch_form
+msgid "Scanning"
+msgstr "Suchlauf"
+
+#. module: ai_translation_consensus
+#: model:res.groups,comment:ai_translation_consensus.group_ai_translation_user
+msgid "Sees the proposals and approves or rejects them."
+msgstr "Sieht die Vorschläge und gibt sie frei oder lehnt sie ab."
+
+#. module: ai_translation_consensus
+#. odoo-python
+#: code:addons/ai_translation_consensus/models/ai_translation_watch.py:0
+msgid "Select at least one field in rule '%s'."
+msgstr "Wählen Sie in der Regel '%s' mindestens ein Feld."
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_provider__sequence
+msgid "Sequence"
+msgstr "Reihenfolge"
+
+#. module: ai_translation_consensus
+#: model_terms:ir.ui.view,arch_db:ai_translation_consensus.view_ai_translation_provider_form
+msgid "Service"
+msgstr "Dienst"
+
+#. module: ai_translation_consensus
+#: model:res.groups,comment:ai_translation_consensus.group_ai_translation_manager
+msgid "Sets up rules, providers and the glossary."
+msgstr "Richtet Regeln, Anbieter und das Glossar ein."
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_unit__agreement
+msgid "Share of favourite votes of the best text."
+msgstr "Anteil der Favoritenstimmen des besten Texts."
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_watch__threshold
+msgid "Share of favourite votes the best text needs (0-1)."
+msgstr "Anteil der Favoritenstimmen, den der beste Text braucht (0-1)."
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_provider__name
+msgid "Shown as the author of a proposal; must be unique."
+msgstr "Wird als Autor eines Vorschlags angezeigt; muss eindeutig sein."
+
+#. module: ai_translation_consensus
+#: model_terms:ir.ui.view,arch_db:ai_translation_consensus.view_ai_translation_unit_list
+msgid "Source"
+msgstr "Quelle"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_unit__source_hash
+msgid "Source Hash"
+msgstr "Quell-Hash"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_unit__source_lang
+msgid "Source Lang"
+msgstr "Quellsprache"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_unit__source_text
+msgid "Source Text"
+msgstr "Quelltext"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields.selection,name:ai_translation_consensus.selection__ai_translation_unit__state__stale
+msgid "Source changed"
+msgstr "Quelle geändert"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_watch__source_lang_id
+msgid "Source language"
+msgstr "Quellsprache"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_unit__state
+msgid "State"
+msgstr "Status"
+
+#. module: ai_translation_consensus
+#: model_terms:ir.ui.view,arch_db:ai_translation_consensus.view_ai_translation_unit_search
+msgid "Status"
+msgstr "Status"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_provider__api_key
+msgid ""
+"Stored in the database, readable by administrators only. Alternatively give "
+"the name of an environment variable below."
+msgstr ""
+"In der Datenbank gespeichert, nur für Administratoren lesbar. Alternativ "
+"unten den Namen einer Umgebungsvariable angeben."
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_watch__instructions
+msgid ""
+"Style hints for every provider, e.g. 'Formal address, IT company, keep "
+"product names'."
+msgstr ""
+"Stilhinweise für jeden Anbieter, z. B. 'Sie-Form, IT-Unternehmen, "
+"Produktnamen beibehalten'."
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_glossary__lang_id
+msgid "Target language"
+msgstr "Zielsprache"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_watch__target_lang_ids
+msgid "Target languages"
+msgstr "Zielsprachen"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_watch__model_name
+msgid "Technical model name"
+msgstr "Technischer Modellname"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_glossary__term
+msgid "Term (source language)"
+msgstr "Begriff (Quellsprache)"
+
+#. module: ai_translation_consensus
+#: model_terms:ir.ui.view,arch_db:ai_translation_consensus.view_ai_translation_provider_form
+msgid "Test connection"
+msgstr "Verbindung testen"
+
+#. module: ai_translation_consensus
+#. odoo-python
+#: code:addons/ai_translation_consensus/models/ai_translation_provider.py:0
+msgid "Test failed: %s"
+msgstr "Test fehlgeschlagen: %s"
+
+#. module: ai_translation_consensus
+#. odoo-python
+#: code:addons/ai_translation_consensus/models/ai_translation_provider.py:0
+msgid "Test translation 'Guten Tag' -> '%s'"
+msgstr "Testübersetzung 'Guten Tag' -> '%s'"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_candidate__text
+msgid "Text"
+msgstr "Text"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_provider__is_local
+msgid "Texts of confidential rules are only sent to local providers."
+msgstr "Texte vertraulicher Regeln gehen nur an lokale Anbieter."
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_watch__batch_size
+msgid "Texts per request."
+msgstr "Texte je Anfrage."
+
+#. module: ai_translation_consensus
+#. odoo-python
+#: code:addons/ai_translation_consensus/models/ai_translation_watch.py:0
+msgid "The domain is not valid."
+msgstr "Die Domain ist ungültig."
+
+#. module: ai_translation_consensus
+#. odoo-python
+#: code:addons/ai_translation_consensus/models/ai_translation_provider.py:0
+msgid "The extra options must be a JSON object."
+msgstr "Die zusätzlichen Optionen müssen ein JSON-Objekt sein."
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_watch__source_lang_id
+msgid "The leading language the texts are written in."
+msgstr "Die führende Sprache, in der die Texte geschrieben sind."
+
+#. module: ai_translation_consensus
+#: model:ir.model.constraint,message:ai_translation_consensus.constraint_ai_translation_provider_name_uniq
+msgid "The provider name must be unique."
+msgstr "Der Anbietername muss eindeutig sein."
+
+#. module: ai_translation_consensus
+#. odoo-python
+#: code:addons/ai_translation_consensus/models/ai_translation_unit.py:0
+msgid "The record does not exist any more."
+msgstr "Der Datensatz existiert nicht mehr."
+
+#. module: ai_translation_consensus
+#. odoo-python
+#: code:addons/ai_translation_consensus/models/ai_translation_unit.py:0
+msgid "The source text changed meanwhile."
+msgstr "Der Quelltext hat sich inzwischen geändert."
+
+#. module: ai_translation_consensus
+#. odoo-python
+#: code:addons/ai_translation_consensus/models/ai_translation_candidate.py:0
+#: code:addons/ai_translation_consensus/models/ai_translation_unit.py:0
+msgid "The source text changed meanwhile. The proposal was discarded."
+msgstr ""
+"Der Quelltext hat sich inzwischen geändert. Der Vorschlag wurde verworfen."
+
+#. module: ai_translation_consensus
+#. odoo-python
+#: code:addons/ai_translation_consensus/models/ai_translation_unit.py:0
+msgid "There is no text to apply."
+msgstr "Es gibt keinen Text zum Übernehmen."
+
+#. module: ai_translation_consensus
+#. odoo-python
+#: code:addons/ai_translation_consensus/models/ai_translation_unit.py:0
+msgid "This proposal cannot be changed any more."
+msgstr "Dieser Vorschlag kann nicht mehr geändert werden."
+
+#. module: ai_translation_consensus
+#. odoo-python
+#: code:addons/ai_translation_consensus/models/ai_translation_unit.py:0
+msgid "This text breaks the markup or placeholders: %s"
+msgstr "Dieser Text beschädigt Auszeichnung oder Platzhalter: %s"
+
+#. module: ai_translation_consensus
+#: model:ir.model.constraint,message:ai_translation_consensus.constraint_ai_translation_unit_unique_text
+msgid "This text is already queued for this language."
+msgstr "Dieser Text ist für diese Sprache bereits eingereiht."
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_provider__timeout
+msgid "Timeout"
+msgstr "Zeitlimit"
+
+#. module: ai_translation_consensus
+#: model_terms:ir.ui.view,arch_db:ai_translation_consensus.view_ai_translation_unit_search
+msgid "To decide"
+msgstr "Zu entscheiden"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_watch__field_ids
+msgid "Translatable fields of the model."
+msgstr "Übersetzbare Felder des Modells."
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields.selection,name:ai_translation_consensus.selection__ai_translation_watch__kind__translate
+msgid "Translate from the source language"
+msgstr "Aus der Quellsprache übersetzen"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields.selection,name:ai_translation_consensus.selection__ai_translation_provider__role__both
+msgid "Translates and reviews"
+msgstr "Übersetzt und prüft"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields.selection,name:ai_translation_consensus.selection__ai_translation_provider__role__translate
+msgid "Translates only"
+msgstr "Nur übersetzen"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_glossary__translation
+#: model:ir.model.fields.selection,name:ai_translation_consensus.selection__ai_translation_candidate__origin__translation
+msgid "Translation"
+msgstr "Übersetzung"
+
+#. module: ai_translation_consensus
+#: model:ir.model,name:ai_translation_consensus.model_ai_translation_glossary
+msgid "Translation glossary"
+msgstr "Übersetzungsglossar"
+
+#. module: ai_translation_consensus
+#: model_terms:ir.ui.view,arch_db:ai_translation_consensus.view_ai_translation_unit_search
+msgid "Translations"
+msgstr "Übersetzungen"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_candidate__unit_id
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_rating__unit_id
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_watch__unit_ids
+msgid "Unit"
+msgstr "Einheit"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_watch__unit_count
+msgid "Unit Count"
+msgstr "Anzahl Einheiten"
+
+#. module: ai_translation_consensus
+#: model_terms:ir.ui.view,arch_db:ai_translation_consensus.view_ai_translation_unit_form
+msgid "Use this"
+msgstr "Diesen verwenden"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_candidate__valid
+msgid "Valid"
+msgstr "Gültig"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_candidate__warnings
+msgid "Warnings"
+msgstr "Warnungen"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_unit__watch_id
+msgid "Watch"
+msgstr "Beobachtung"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_provider__weight
+msgid "Weight"
+msgstr "Gewicht"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_provider__weight
+msgid "Weight of this provider's votes."
+msgstr "Gewicht der Stimmen dieses Anbieters."
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields.selection,name:ai_translation_consensus.selection__ai_translation_provider__last_status__ok
+msgid "Works"
+msgstr "Funktioniert"
+
+#. module: ai_translation_consensus
+#: model_terms:ir.ui.view,arch_db:ai_translation_consensus.view_ai_translation_unit_form
+msgid "Write this wording into the record?"
+msgstr "Diese Formulierung in den Datensatz schreiben?"
+
+#. module: ai_translation_consensus
+#: model_terms:ir.ui.view,arch_db:ai_translation_consensus.view_ai_translation_provider_form
+msgid "claude -p --tools '' --no-session-persistence"
+msgstr ""
+
+#. module: ai_translation_consensus
+#: model_terms:ir.ui.view,arch_db:ai_translation_consensus.view_ai_translation_glossary_list
+msgid "empty = keep unchanged"
+msgstr "leer = unverändert lassen"
+
+#. module: ai_translation_consensus
+#. odoo-python
+#: code:addons/ai_translation_consensus/models/ai_translation_provider.py:0
+msgid "empty answer"
+msgstr "leere Antwort"
+
+#. module: ai_translation_consensus
+#: model_terms:ir.ui.view,arch_db:ai_translation_consensus.view_ai_translation_provider_form
+msgid "{\"body\": {\"temperature\": 0.2}}"
+msgstr ""

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_ai_translation_root" name="AI Translation" sequence="80"
+              web_icon="ai_translation_consensus,static/description/icon.png"
+              groups="group_ai_translation_user"/>
+    <menuitem id="menu_ai_translation_units" name="Proposals" parent="menu_ai_translation_root"
+              action="action_ai_translation_unit" sequence="10"/>
+    <menuitem id="menu_ai_translation_watches" name="Rules" parent="menu_ai_translation_root"
+              action="action_ai_translation_watch" sequence="20" groups="group_ai_translation_manager"/>
+    <menuitem id="menu_ai_translation_providers" name="Providers" parent="menu_ai_translation_root"
+              action="action_ai_translation_provider" sequence="30" groups="group_ai_translation_manager"/>
+    <menuitem id="menu_ai_translation_glossary" name="Glossary" parent="menu_ai_translation_root"
+              action="action_ai_translation_glossary" sequence="40" groups="group_ai_translation_manager"/>
+</odoo>

@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_ai_translation_watch_list" model="ir.ui.view">
+        <field name="name">ai.translation.watch.list</field>
+        <field name="model">ai.translation.watch</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name"/>
+                <field name="kind"/>
+                <field name="model_id"/>
+                <field name="source_lang_id"/>
+                <field name="target_lang_ids" widget="many2many_tags"/>
+                <field name="auto_scan" widget="boolean_toggle"/>
+                <field name="auto_apply" widget="boolean_toggle"/>
+                <field name="open_count"/>
+                <field name="last_scan"/>
+                <field name="active" widget="boolean_toggle"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_ai_translation_watch_form" model="ir.ui.view">
+        <field name="name">ai.translation.watch.form</field>
+        <field name="model">ai.translation.watch</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_scan" type="object" string="Scan now" class="btn-primary"/>
+                    <button name="action_process" type="object" string="Process one batch"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_open_units" type="object" class="oe_stat_button" icon="fa-language">
+                            <field name="unit_count" widget="statinfo" string="Proposals"/>
+                        </button>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="name"/>
+                            <field name="kind"/>
+                            <field name="active"/>
+                            <field name="model_id" options="{'no_create': True}"/>
+                            <field name="model_name" invisible="1"/>
+                            <field name="field_ids" widget="many2many_tags" options="{'no_create': True}"/>
+                            <field name="domain" widget="domain" options="{'model': 'model_name'}"/>
+                        </group>
+                        <group>
+                            <field name="source_lang_id" options="{'no_create': True}"/>
+                            <field name="target_lang_ids" widget="many2many_tags" options="{'no_create': True}"
+                                   invisible="kind == 'proofread'"/>
+                            <field name="mode" invisible="kind == 'proofread'"/>
+                            <field name="instructions" placeholder="Formal address, IT company, keep product names ..."/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Providers" name="providers">
+                            <group>
+                                <field name="provider_ids" widget="many2many_tags"/>
+                                <field name="confidential"/>
+                            </group>
+                            <p class="text-muted">
+                                Leave the providers empty to use every active provider that has what it
+                                needs (a key, if it needs one). Services that only translate
+                                (DeepL, Google, ...) cannot review or proofread.
+                            </p>
+                        </page>
+                        <page string="Consensus" name="consensus">
+                            <group>
+                                <group>
+                                    <field name="threshold"/>
+                                    <field name="min_score"/>
+                                    <field name="max_rounds"/>
+                                </group>
+                                <group>
+                                    <field name="exclude_self"/>
+                                    <field name="review_unanimous"/>
+                                    <field name="auto_apply"/>
+                                </group>
+                            </group>
+                        </page>
+                        <page string="Scanning" name="scanning">
+                            <group>
+                                <group>
+                                    <field name="auto_scan"/>
+                                    <field name="batch_size"/>
+                                    <field name="context_chars"/>
+                                </group>
+                                <group>
+                                    <field name="max_records"/>
+                                    <field name="max_new_units"/>
+                                    <field name="max_units_per_run"/>
+                                    <field name="last_scan"/>
+                                    <field name="scan_cursor"/>
+                                </group>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_ai_translation_watch" model="ir.actions.act_window">
+        <field name="name">Rules</field>
+        <field name="res_model">ai.translation.watch</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>

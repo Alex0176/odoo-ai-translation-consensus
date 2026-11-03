@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_ai_translation_unit_list" model="ir.ui.view">
+        <field name="name">ai.translation.unit.list</field>
+        <field name="model">ai.translation.unit</field>
+        <field name="arch" type="xml">
+            <list decoration-success="state == 'applied'" decoration-warning="state == 'review'"
+                  decoration-danger="state == 'failed'" decoration-muted="state in ('rejected', 'unchanged', 'stale')"
+                  decoration-info="state == 'consensus'">
+                <field name="record_name"/>
+                <field name="field_label"/>
+                <field name="lang"/>
+                <field name="source_text" string="Source"/>
+                <field name="final_text"/>
+                <field name="agreement" widget="percentage" optional="show"/>
+                <field name="avg_score" optional="show"/>
+                <field name="state" widget="badge"/>
+                <field name="kind" optional="hide"/>
+                <field name="watch_id" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_ai_translation_unit_form" model="ir.ui.view">
+        <field name="name">ai.translation.unit.form</field>
+        <field name="model">ai.translation.unit</field>
+        <field name="arch" type="xml">
+            <form create="0">
+                <header>
+                    <button name="action_approve" type="object" string="Apply proposal" class="btn-primary"
+                            invisible="state not in ('consensus', 'review') or not final_text"/>
+                    <button name="action_apply_manual" type="object" string="Apply my wording"
+                            invisible="state not in ('consensus', 'review', 'failed') or not manual_text"/>
+                    <button name="action_process_now" type="object" string="Process now" invisible="state != 'new'"/>
+                    <button name="action_reject" type="object" string="Reject"
+                            invisible="state not in ('new', 'consensus', 'review', 'failed')"/>
+                    <button name="action_requeue" type="object" string="Run again"
+                            invisible="state in ('new', 'applied')"/>
+                    <button name="action_open_record" type="object" string="Open record"/>
+                    <field name="state" widget="statusbar"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group>
+                            <field readonly="1" name="watch_id"/>
+                            <field readonly="1" name="kind"/>
+                            <field readonly="1" name="record_name"/>
+                            <field readonly="1" name="field_label"/>
+                            <field readonly="1" name="source_lang"/>
+                            <field readonly="1" name="lang"/>
+                        </group>
+                        <group>
+                            <field readonly="1" name="agreement" widget="percentage"/>
+                            <field readonly="1" name="avg_score"/>
+                            <field readonly="1" name="rounds"/>
+                            <field readonly="1" name="reason"/>
+                            <field readonly="1" name="applied_date"/>
+                            <field readonly="1" name="applied_uid"/>
+                        </group>
+                    </group>
+                    <group>
+                        <field readonly="1" name="source_text"/>
+                        <field readonly="1" name="ctx_before" invisible="not ctx_before"/>
+                        <field readonly="1" name="ctx_after" invisible="not ctx_after"/>
+                        <field name="final_text" readonly="1"/>
+                        <field name="manual_text" invisible="state in ('applied', 'unchanged', 'stale')"/>
+                        <field readonly="1" name="error" invisible="not error"/>
+                    </group>
+                    <notebook>
+                        <page string="Candidates" name="candidates">
+                            <field name="candidate_ids" readonly="1">
+                                <list decoration-success="is_winner" decoration-danger="not valid">
+                                    <field name="is_winner" widget="boolean"/>
+                                    <field name="text"/>
+                                    <field name="authors"/>
+                                    <field name="origin" optional="hide"/>
+                                    <field name="avg_score"/>
+                                    <field name="vote_share" widget="percentage"/>
+                                    <field name="problems"/>
+                                    <field name="warnings" optional="hide"/>
+                                    <field name="remarks" optional="hide"/>
+                                    <button name="action_choose" type="object" string="Use this" icon="fa-check"
+                                            invisible="not valid"
+                                            confirm="Write this wording into the record?"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Ratings" name="ratings">
+                            <field name="rating_ids" readonly="1">
+                                <list>
+                                    <field name="round_no"/>
+                                    <field name="reviewer"/>
+                                    <field name="candidate_id"/>
+                                    <field name="accuracy"/>
+                                    <field name="naturalness"/>
+                                    <field name="favourite" widget="boolean"/>
+                                    <field name="remark"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_ai_translation_unit_search" model="ir.ui.view">
+        <field name="name">ai.translation.unit.search</field>
+        <field name="model">ai.translation.unit</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="record_name"/>
+                <field name="source_text"/>
+                <field name="final_text"/>
+                <field name="lang"/>
+                <field name="watch_id"/>
+                <filter name="open" string="To decide" domain="[('state', 'in', ('review', 'consensus'))]"/>
+                <filter name="consensus" string="Agreed" domain="[('state', '=', 'consensus')]"/>
+                <filter name="review" string="Needs a human" domain="[('state', '=', 'review')]"/>
+                <filter name="new" string="Queued" domain="[('state', '=', 'new')]"/>
+                <filter name="applied" string="Applied" domain="[('state', '=', 'applied')]"/>
+                <filter name="failed" string="Failed" domain="[('state', 'in', ('failed', 'stale'))]"/>
+                <separator/>
+                <filter name="translate" string="Translations" domain="[('kind', '=', 'translate')]"/>
+                <filter name="proofread" string="Proofreading" domain="[('kind', '=', 'proofread')]"/>
+                <group>
+                    <filter name="group_state" string="Status" context="{'group_by': 'state'}"/>
+                    <filter name="group_lang" string="Language" context="{'group_by': 'lang'}"/>
+                    <filter name="group_watch" string="Rule" context="{'group_by': 'watch_id'}"/>
+                    <filter name="group_record" string="Record" context="{'group_by': 'record_name'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_ai_translation_unit" model="ir.actions.act_window">
+        <field name="name">Proposals</field>
+        <field name="res_model">ai.translation.unit</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_ai_translation_unit_search"/>
+        <field name="context">{'search_default_open': 1}</field>
+    </record>
+
+    <record id="server_action_unit_approve" model="ir.actions.server">
+        <field name="name">Apply proposals</field>
+        <field name="model_id" ref="model_ai_translation_unit"/>
+        <field name="binding_model_id" ref="model_ai_translation_unit"/>
+        <field name="binding_view_types">list</field>
+        <field name="state">code</field>
+        <field name="code">action = records.action_approve()</field>
+    </record>
+    <record id="server_action_unit_reject" model="ir.actions.server">
+        <field name="name">Reject proposals</field>
+        <field name="model_id" ref="model_ai_translation_unit"/>
+        <field name="binding_model_id" ref="model_ai_translation_unit"/>
+        <field name="binding_view_types">list</field>
+        <field name="state">code</field>
+        <field name="code">records.action_reject()</field>
+    </record>
+    <record id="server_action_unit_requeue" model="ir.actions.server">
+        <field name="name">Run again</field>
+        <field name="model_id" ref="model_ai_translation_unit"/>
+        <field name="binding_model_id" ref="model_ai_translation_unit"/>
+        <field name="binding_view_types">list</field>
+        <field name="state">code</field>
+        <field name="code">records.action_requeue()</field>
+    </record>
+</odoo>
