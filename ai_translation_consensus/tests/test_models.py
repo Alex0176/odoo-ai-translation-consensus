@@ -187,14 +187,14 @@ class TestModels(TransactionCase):
         self.assertEqual(watch._scan(), 0)
 
     def test_proofread_replaces_the_source_text(self):
-        self.table = {"Machines": "Machines (corrected)"}
+        self.table = {"Machines": "Machines."}
         self._provider("one")
         self._provider("two")
         watch = self._watch(kind="proofread", auto_apply=True)
         self.assertEqual(watch._scan(), 1)
         watch.unit_ids._process_group()
         self.assertEqual(watch.unit_ids.state, "applied")
-        self.assertEqual(self.partner_cat.with_context(lang="en_US").name, "Machines (corrected)")
+        self.assertEqual(self.partner_cat.with_context(lang="en_US").name, "Machines.")
 
     def test_providers_are_told_the_real_text_language(self):
         seen = []

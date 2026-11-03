@@ -74,6 +74,17 @@ class TestChecks(BaseCase):
         _e, warnings = checks.check("This sentence is not short at all.", "This sentence is not short at all.")
         self.assertIn("identical to the source", warnings)
 
+    def test_proofread_rejects_a_foreign_text(self):
+        # a weak model that answers with the neighbouring item must never win
+        errors, _w = checks.check("Was benötigen wir dafür:", "Somit können wir uns die Heizgriffe "
+                                  "von 2 Schritten auf 5 Schritte umstellen.", "proofread")
+        self.assertTrue(any("too different" in e for e in errors))
+        errors, _w = checks.check("Der 5 Schritte Trick ...", "Der 5-Schritte-Trick …", "proofread")
+        self.assertEqual(errors, [])
+        errors, _w = checks.check("Wir haben 3 Büros", "Wir haben vier Büros", "proofread")
+        self.assertIn("numbers differ", errors)
+        self.assertEqual(checks.check("Wir haben 3 Büros", "Wir haben vier Büros", "translate")[0], [])
+
 
 @tagged("standard", "at_install")
 class TestPrompts(BaseCase):

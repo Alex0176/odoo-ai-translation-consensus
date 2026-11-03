@@ -42,6 +42,9 @@ in the same vote.
 * **Without reviewers** (only translation engines such as DeepL) a result counts as agreed
   only when at least two of them produced the same text.
 * **Proofreading** adds the original as a candidate. If the original wins, nothing is changed.
+* **Proofreading** results must stay recognisably close to the original (similarity ≥ 0.6, same
+  numbers). Small free models sometimes answer a batch with shifted or foreign texts; such an
+  answer is rejected instead of being voted on. Keep *Texts per request* small with weak models.
 * If every reviewer is unavailable (rate limit, outage) no pointless second round is run.
 * Context: each request carries the neighbouring blocks and a slice of the page text
   (configurable) so that terms, tone and gender agree across the page.

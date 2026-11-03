@@ -8,6 +8,7 @@ exclude anything.
 """
 import re
 from collections import Counter
+from difflib import SequenceMatcher
 
 TAG = re.compile(r"<[^>]*>")
 ENTITY = re.compile(r"&[#\w]+;")
@@ -29,6 +30,20 @@ def _same(pattern, source, target):
     return Counter(pattern.findall(source)) == Counter(pattern.findall(target))
 
 
+PROOFREAD_MIN_SIMILARITY = 0.6
+
+
+def similarity(a, b):
+    """0-1; cheap upper bounds first so long texts stay fast."""
+    a, b = normalize(a), normalize(b)
+    if a == b:
+        return 1.0
+    matcher = SequenceMatcher(None, a, b, autojunk=False)
+    if matcher.real_quick_ratio() < PROOFREAD_MIN_SIMILARITY or matcher.quick_ratio() < PROOFREAD_MIN_SIMILARITY:
+        return matcher.quick_ratio()
+    return matcher.ratio()
+
+
 def check(source, target, kind="translate"):
     """Return ``(errors, warnings)`` as lists of short messages."""
     errors, warnings = [], []
@@ -45,7 +60,10 @@ def check(source, target, kind="translate"):
     if CHATTER.match(target) and not CHATTER.match(source):
         errors.append("contains chatter around the text")
     if not _same(NUMBER, source, target):
-        warnings.append("numbers differ")
+        # A proofread text keeps its numbers; in a translation they may be spelled out.
+        (errors if kind == "proofread" else warnings).append("numbers differ")
+    if kind == "proofread" and has_letters(source) and similarity(source, target) < PROOFREAD_MIN_SIMILARITY:
+        errors.append("too different from the original for a proofread (wrong text returned?)")
     ls, lt = len(source), len(target)
     if ls > 20 and (lt > 3.5 * ls or lt < 0.2 * ls):
         warnings.append("suspicious length (%d -> %d characters)" % (ls, lt))
