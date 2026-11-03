@@ -137,11 +137,14 @@ decision, queued or failed, per language and per provider, and refreshes itself 
   edited web page is translated again without anybody pressing a button.
 * The cron processes several groups of texts (one record, one language each) **at the same time**:
   *Groups processed at the same time* on the rule (default 6) sets how many, and when several rules
-  are queued they take turns. Odoo calls the cron again at once while work is left. *Proposals
-  processed per cron run* limits the texts per rule and cron interval; 0 means no limit, which is
-  what you want when your API accounts have generous quotas. Every job ends itself after about
-  40 seconds and is rescheduled, so it stays below the cron worker's time limit. Raise the number of
-  parallel groups only as far as the rate limits of your accounts allow.
+  are queued they take turns. *Proposals processed per cron run* limits the texts per rule and cron
+  interval; 0 means no limit, which is what you want when your API accounts have generous quotas.
+  The calls to the providers run in background threads and keep going between cron calls; every
+  cron call lasts only about 15 seconds, hands out new groups, stores the finished ones and returns,
+  so it never holds up the other cron jobs or trips the cron worker's time limit (which in Odoo also
+  covers the pause between two passes). Groups still waiting when the Odoo worker is restarted are
+  lost and simply queued again. Raise the number of parallel groups only as far as the rate limits of
+  your accounts allow.
 * When the last open text of a rule is finished, a message **"All languages translated"**
   (proofreading: "All texts proofread") is posted once in the channel *AI Translation* by the bot.
   Members of the reviewer group are subscribed automatically; the message is posted again after

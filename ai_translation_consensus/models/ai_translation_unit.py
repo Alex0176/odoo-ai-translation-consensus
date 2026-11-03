@@ -1,8 +1,10 @@
 # Copyright 2026 Biricon IT Services GmbH
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
+import ctypes
 import logging
+import threading
 import time
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 from itertools import zip_longest
 
 from dateutil.relativedelta import relativedelta
@@ -16,9 +18,42 @@ from ..engine import checks, pipeline
 
 _logger = logging.getLogger(__name__)
 
-CRON_JOB_SECONDS = 40           # stop starting groups; a cron worker is killed after limit_time_real (120 s)
+# The cron worker is killed when it does not report back within limit_time_real (120 s): that counts
+# the sleep between two passes (about a minute) plus every due job (mail, Ortung ...) on the single
+# cron worker. So a cron call here only waits a few seconds; the providers keep working in threads
+# of the worker process between the calls and the next call collects what has arrived.
+CRON_JOB_SECONDS = 15           # one cron call neither starts nor awaits groups after this
+INFLIGHT_MAX_SECONDS = 900      # a group still waiting for its providers after this is given up (stays queued)
+COOLDOWN_SECONDS = 300          # a group that failed or was given up is not started again for this long
+MAX_THREADS = 24
+THREAD_STACK_BYTES = 1024 * 1024
+M_ARENA_MAX = -8
 CTX_CHARS = 240
 OPEN_STATES = ("new", "review", "consensus", "failed")
+
+
+_ARENAS_LIMITED = []
+_INFLIGHT = []                  # groups handed to the providers; lives in this process only
+_COOLDOWN = {}                  # (db, unit id) -> time.monotonic() until which the unit is left alone
+_POOL = []
+
+
+def _limit_malloc_arenas(count=2):
+    """glibc gives every thread its own 64 MB arena of address space; an Odoo worker with a hard
+    address-space limit (``limit_memory_hard``) then runs out after a handful of threads
+    (MemoryError / "can't start new thread"). A few shared arenas are plenty for network waits."""
+    if not _ARENAS_LIMITED:
+        try:
+            _ARENAS_LIMITED.append(bool(ctypes.CDLL("libc.so.6").mallopt(M_ARENA_MAX, count)))
+        except (OSError, AttributeError):  # not glibc: nothing to do
+            _ARENAS_LIMITED.append(False)
+    return _ARENAS_LIMITED[0]
+
+
+def _executor():
+    if not _POOL:
+        _POOL.append(ThreadPoolExecutor(max_workers=MAX_THREADS, thread_name_prefix="ai-translation"))
+    return _POOL[0]
 
 
 class AiTranslationUnit(models.Model):
@@ -220,42 +255,158 @@ class AiTranslationUnit(models.Model):
 
     @api.model
     def _cron_process(self):
-        """Process a batch of groups in parallel and report what is left, so Odoo calls again at once.
+        """Keep the providers busy and store what they have finished; report what is left.
 
         The groups of all rules are taken in turns; as many run side by side as the rules allow
-        (``parallel_groups``). Providers are only waited for in threads, everything that touches the
-        database stays in this thread. Each rule handles at most ``max_units_per_run`` texts per
-        cron interval. The job ends itself after ``CRON_JOB_SECONDS`` and is rescheduled at once,
-        which keeps every job well below the cron worker's time limit.
+        (``parallel_groups``). The providers are waited for in threads that outlive this call, so a
+        group may take minutes while each cron call lasts at most ``CRON_JOB_SECONDS``: it stores
+        the finished groups, starts new ones for the free places and waits for the next one to
+        finish. Everything that touches the database stays in this thread. Each rule handles at
+        most ``max_units_per_run`` texts per cron interval. Groups that are in flight when the
+        worker process ends are lost and simply run again.
         """
         cron = self.env.ref("ai_translation_consensus.ir_cron_ai_translation", raise_if_not_found=False)
         if not cron:
             return
-        queues, remaining = [], 0
+        db = self.env.cr.dbname
+        job_end = self.env.context.get("cron_end_time")
+        job_start = job_end - MIN_TIME_PER_JOB if job_end else time.monotonic()
+        deadline = job_start + CRON_JOB_SECONDS
+        handled = self._cron_collect(db)
+        started, queued, tried = 0, 0, False
+        if time.monotonic() < deadline:
+            tried = True
+            while True:
+                begun, settled, queued = self._cron_start(cron, db)
+                started += begun
+                handled += settled
+                pending = [t["future"] for t in _INFLIGHT if t["db"] == db]
+                left = deadline - time.monotonic()
+                if not pending or left <= 0:
+                    break
+                wait(pending, timeout=left, return_when=FIRST_COMPLETED)
+                collected = self._cron_collect(db)
+                handled += collected
+                if not collected:
+                    break
+        else:
+            queued = self._cron_start(cron, db, dry=True)[2]
+        in_flight = sum(len(t["unit_ids"]) for t in _INFLIGHT if t["db"] == db)
+        remaining = queued + in_flight
+        # Nothing moved and nothing is running (no usable provider, rows locked): stop, or the job
+        # would be restarted in a loop.
+        if tried and not (handled or started or in_flight):
+            remaining = 0
+        self.env["ir.cron"]._commit_progress(handled, remaining=remaining)
+
+    @api.model
+    def _cron_start(self, cron, db, dry=False):
+        """Hand queued groups to the providers for every free place.
+
+        Returns ``(groups started, units settled without a provider call, queued units left)``.
+        """
+        mine = [t for t in _INFLIGHT if t["db"] == db]
+        now = time.monotonic()
+        for key in [k for k, until in _COOLDOWN.items() if until < now]:
+            del _COOLDOWN[key]
+        busy = {uid for t in mine for uid in t["unit_ids"]} | {uid for d, uid in _COOLDOWN if d == db}
+        queues, queued = [], 0
         for watch in self.env["ai.translation.watch"].search([("auto_scan", "=", True)]):
-            quota = self._cron_quota(watch, cron)
+            running = sum(len(t["unit_ids"]) for t in mine if t["watch_id"] == watch.id)
+            quota = max(self._cron_quota(watch, cron) - running, 0)
             domain = [("watch_id", "=", watch.id), ("state", "=", "new")]
+            if busy:
+                domain.append(("id", "not in", list(busy)))
             count = min(self.search_count(domain), quota) if quota else 0
             if count:
-                remaining += count
+                queued += count
                 width = watch._parallel_groups() * (watch.batch_size or 10) * 3
                 units = self.search(domain, order="id", limit=min(quota, width))
                 queues.append((watch, self._group_units(units, watch.batch_size)))
-        job_end = self.env.context.get("cron_end_time")
-        job_seconds = time.monotonic() - (job_end - MIN_TIME_PER_JOB) if job_end else 0
-        if not remaining or job_seconds > CRON_JOB_SECONDS:
-            self.env["ir.cron"]._commit_progress(remaining=remaining)
-            return
-        width = max(w._parallel_groups() for w, _groups in queues)
+        if dry or not queues:
+            return 0, 0, queued
+        slots = max(w._parallel_groups() for w, _groups in queues) - len(mine)
         turns = zip_longest(*[groups for _watch, groups in queues])
-        batch = [g for turn in turns for g in turn if g][:width]
-        handled = self._process_groups_parallel(batch)
-        # Nothing handled (no usable provider, rows locked): stop, or the job would restart in a loop.
-        self.env["ir.cron"]._commit_progress(handled, remaining=max(remaining - handled, 0) if handled else 0)
+        batch = [g for turn in turns for g in turn if g][:max(slots, 0)]
+        started = settled = started_units = 0
+        for group in batch:
+            done, job = group._prepare_group()
+            settled += done
+            if job:
+                self._cron_submit(job, db)
+                started += 1
+                started_units += len(job["fresh"])
+        if batch:
+            self.env["ir.cron"]._commit_progress()  # release the row locks before anybody waits
+        return started, settled, max(queued - settled - started_units, 0)
 
     @api.model
-    def _process_groups_parallel(self, groups):
-        """Prepare the groups, wait for all providers side by side, store the results one by one."""
+    def _cron_submit(self, job, db):
+        _limit_malloc_arenas()
+        # Odoo workers have a hard address-space limit; 8 MB of stack per thread would exhaust it.
+        previous = threading.stack_size(THREAD_STACK_BYTES)
+        try:
+            future = _executor().submit(
+                self._run_job, {"args": job["args"], "kwargs": job["kwargs"], "name": job["name"]})
+        finally:
+            threading.stack_size(previous)
+        _INFLIGHT.append({
+            "db": db, "future": future, "started": time.monotonic(), "name": job["name"],
+            "unit_ids": set(job["units"].ids), "fresh_ids": job["fresh"].ids,
+            "watch_id": job["watch"].id, "lang": job["lang"],
+            "translators": job["translators"], "reviewers": job["reviewers"],
+        })
+
+    @api.model
+    def _cron_collect(self, db):
+        """Store the groups the providers have finished. Returns units handled."""
+        handled = 0
+        for ticket in [t for t in _INFLIGHT if t["db"] == db]:
+            future = ticket["future"]
+            if not future.done():
+                if time.monotonic() - ticket["started"] > INFLIGHT_MAX_SECONDS:
+                    _INFLIGHT.remove(ticket)
+                    self._cron_cool_down(db, ticket)
+                    _logger.warning("AI translation rule %s: a group has waited for its providers for "
+                                    "%s s and is given up, its units stay queued",
+                                    ticket["name"], INFLIGHT_MAX_SECONDS)
+                continue
+            _INFLIGHT.remove(ticket)
+            if future.cancelled() or future.exception() or future.result() is None:
+                self._cron_cool_down(db, ticket)
+                continue
+            watch = self.env["ai.translation.watch"].browse(ticket["watch_id"]).exists()
+            if not watch:
+                continue
+            job = {
+                "fresh": self.with_context(ai_translation_defer_check=True).browse(ticket["fresh_ids"]),
+                "watch": watch, "lang": ticket["lang"],
+                "translators": ticket["translators"], "reviewers": ticket["reviewers"],
+            }
+            try:
+                with self.env.cr.savepoint():
+                    handled += self._finish_group(job, *future.result())
+            except Exception:  # noqa: BLE001 - the units stay queued and run again
+                _logger.exception("AI translation rule %s: storing the results of a group failed",
+                                  ticket["name"])
+                self._cron_cool_down(db, ticket)
+            self.env["ir.cron"]._commit_progress()
+        return handled
+
+    @api.model
+    def _cron_cool_down(self, db, ticket):
+        """Leave the units of a failed group alone for a while instead of calling the providers again at once."""
+        until = time.monotonic() + COOLDOWN_SECONDS
+        for uid in ticket["unit_ids"]:
+            _COOLDOWN[(db, uid)] = until
+
+    @api.model
+    def _process_groups_parallel(self, groups, deadline=None):
+        """Prepare the groups, wait for all providers side by side, store the results one by one.
+
+        After ``deadline`` (``time.monotonic()`` value) unfinished groups are abandoned: their
+        threads cannot be stopped but their answers are dropped and the units stay queued.
+        """
         handled, jobs = 0, []
         for group in groups:
             settled, job = group._prepare_group()
@@ -263,8 +414,21 @@ class AiTranslationUnit(models.Model):
             if job:
                 jobs.append(job)
         if jobs:
-            with ThreadPoolExecutor(max_workers=len(jobs)) as pool:
-                outcomes = list(pool.map(self._run_job, jobs))
+            # Odoo workers have a hard address-space limit; 8 MB of stack per thread would exhaust it.
+            _limit_malloc_arenas()
+            previous = threading.stack_size(THREAD_STACK_BYTES)
+            pool = ThreadPoolExecutor(max_workers=len(jobs))
+            try:
+                futures = [pool.submit(self._run_job, job) for job in jobs]
+                timeout = max(deadline - time.monotonic(), 1) if deadline else None
+                wait(futures, timeout=timeout)
+                outcomes = [f.result() if f.done() else None for f in futures]
+                if any(not f.done() for f in futures):
+                    _logger.warning("AI translation: %s group(s) still waiting for the providers at "
+                                    "the deadline, left in the queue", sum(1 for f in futures if not f.done()))
+            finally:
+                pool.shutdown(wait=False, cancel_futures=True)
+                threading.stack_size(previous)
             for job, outcome in zip(jobs, outcomes):
                 if outcome is not None:
                     handled += job["group"]._finish_group(job, *outcome)
@@ -301,6 +465,7 @@ class AiTranslationUnit(models.Model):
         prompt_src, prompt_tgt = watch._prompt_langs(first.source_lang, first.lang)
         return len(units) - len(fresh), {
             "group": self, "units": units, "fresh": fresh, "watch": watch, "lang": first.lang,
+            "name": watch.name,
             "translators": translators, "reviewers": reviewers,
             "args": (watch.kind, prompt_src, prompt_tgt, items, translators, reviewers),
             "kwargs": dict(
@@ -317,14 +482,16 @@ class AiTranslationUnit(models.Model):
         try:
             results = pipeline.process(*job["args"], **job["kwargs"])
         except Exception:  # noqa: BLE001 - one broken group must not take the others down
-            _logger.exception("AI translation rule %s: group failed, its units stay queued",
-                              job["watch"].name)
+            _logger.exception("AI translation rule %s: group failed, its units stay queued", job["name"])
             return None
         return results, time.monotonic() - started
 
     def _finish_group(self, job, results, elapsed):
         """Store what the providers returned. Returns units handled."""
-        fresh, watch = job["fresh"], job["watch"]
+        watch = job["watch"]
+        fresh = job["fresh"].exists().filtered(lambda u: u.state == "new")
+        if not fresh:
+            return 0
         errors = results.pop("__errors__", {})
         for unit in fresh:
             unit._store_result(results[str(unit.id)], errors, watch)

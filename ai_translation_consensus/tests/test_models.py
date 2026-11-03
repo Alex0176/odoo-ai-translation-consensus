@@ -10,6 +10,7 @@ from odoo.tests.common import TransactionCase, tagged
 
 from .. import providers
 from ..engine import pipeline
+from ..models import ai_translation_unit as unit_module
 from ..providers.base import ChatProvider
 from ..providers.http import ProviderError
 
@@ -52,6 +53,13 @@ class ScriptedChat(ChatProvider):
 
 @tagged("standard", "at_install")
 class TestModels(TransactionCase):
+    def setUp(self):
+        super().setUp()
+        unit_module._INFLIGHT.clear()
+        unit_module._COOLDOWN.clear()
+        self.addCleanup(unit_module._INFLIGHT.clear)
+        self.addCleanup(unit_module._COOLDOWN.clear)
+
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
@@ -414,18 +422,32 @@ class TestModels(TransactionCase):
         reported = []
 
         def commit(model, processed=0, *, remaining=None, deactivate=False):
-            reported.append((processed, remaining))
+            if remaining is not None:
+                reported.append((processed, remaining))
             return float("inf")
 
         with patch.object(type(self.env["ir.cron"]), "_commit_progress", commit):
             self.env["ai.translation.unit"].with_context(**context)._cron_process()
         return reported
 
-    def test_cron_does_one_group_per_call_and_reports_what_is_left(self):
+    def _gate(self):
+        """Replace the pipeline by one that waits for an event; returns the event."""
+        release = threading.Event()
+        self.addCleanup(release.set)
+        real = pipeline.process
+
+        def gated(*args, **kwargs):
+            release.wait(10)
+            return real(*args, **kwargs)
+
+        patcher = patch("odoo.addons.ai_translation_consensus.models.ai_translation_unit.pipeline.process", gated)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        return release
+
+    def test_cron_stores_what_the_providers_finished_and_reports_what_is_left(self):
         watch = self._cron_setup()
-        self.assertEqual(self._cron_calls(), [(1, 2)])
-        self.assertEqual(self._cron_calls(), [(1, 1)])
-        self.assertEqual(self._cron_calls(), [(1, 0)])
+        self.assertEqual(self._cron_calls(), [(3, 0)])
         self.assertEqual(self._cron_calls(), [(0, 0)])
         self.assertEqual(set(watch.unit_ids.mapped("state")), {"consensus"})
 
@@ -453,11 +475,85 @@ class TestModels(TransactionCase):
         second = self._watch(domain="[('id', 'in', %s)]" % cats.ids, auto_scan=True, batch_size=1,
                               parallel_groups=2)
         second._scan()
-        self._cron_calls()
-        self.assertEqual((len(first.unit_ids.filtered(lambda u: u.state != "new")),
-                          len(second.unit_ids.filtered(lambda u: u.state != "new"))), (1, 1))
+        Unit = self.env["ai.translation.unit"]
+        submitted = []
+        cron = self.env.ref("ai_translation_consensus.ir_cron_ai_translation")
+        with patch.object(type(Unit), "_cron_submit", lambda model, job, db: submitted.append(job["watch"])), \
+                patch.object(type(self.env["ir.cron"]), "_commit_progress", lambda *args, **kwargs: 0):
+            started, _settled, queued = Unit._cron_start(cron, self.env.cr.dbname)
+        self.assertEqual((started, queued), (2, 3))
+        self.assertEqual(submitted, [first, second])
 
-    def test_a_failing_group_does_not_stop_the_others(self):
+    def test_groups_keep_running_between_cron_calls(self):
+        watch = self._cron_setup()
+        release = self._gate()
+        with patch.object(unit_module, "CRON_JOB_SECONDS", 0.3):
+            self.assertEqual(self._cron_calls(), [(0, 3)])
+            self.assertEqual(len(unit_module._INFLIGHT), 1)
+            self.assertEqual(set(watch.unit_ids.mapped("state")), {"new"})
+            # a second call while the provider is still busy neither stores nor doubles the group
+            self.assertEqual(self._cron_calls(), [(0, 3)])
+            self.assertEqual(len(unit_module._INFLIGHT), 1)
+            release.set()
+            unit_module._INFLIGHT[0]["future"].result(timeout=5)
+            reported = self._cron_calls()
+        self.assertGreaterEqual(reported[0][0], 1)
+        self.assertGreaterEqual(len(watch.unit_ids.filtered(lambda u: u.state == "consensus")), 1)
+
+    def test_threads_get_a_small_stack_and_it_is_restored(self):
+        self._cron_setup(parallel_groups=1)
+        before = threading.stack_size()
+        seen = []
+        executor = unit_module._executor()
+        real_submit = executor.submit
+
+        def spy(*args, **kwargs):
+            seen.append(threading.stack_size())
+            return real_submit(*args, **kwargs)
+
+        with patch.object(executor, "submit", spy):
+            self._cron_calls()
+        self.assertEqual(seen[:1], [1024 * 1024])
+        self.assertEqual(threading.stack_size(), before)
+
+    def test_a_hanging_provider_is_abandoned_at_the_deadline(self):
+        watch = self._cron_setup(parallel_groups=1)
+        release = threading.Event()
+        self.addCleanup(release.set)
+
+        def hang(*args, **kwargs):
+            release.wait(10)
+            raise RuntimeError("late")
+
+        Unit = self.env["ai.translation.unit"]
+        groups = Unit._group_units(watch.unit_ids, 1)[:2]
+        started = time.monotonic()
+        with patch("odoo.addons.ai_translation_consensus.models.ai_translation_unit.pipeline.process", hang):
+            handled = Unit._process_groups_parallel(groups, deadline=time.monotonic() + 0.5)
+        self.assertLess(time.monotonic() - started, 5)
+        self.assertEqual(handled, 0)
+        self.assertEqual(set(watch.unit_ids.mapped("state")), {"new"})
+
+    def test_a_group_waiting_too_long_is_given_up_and_left_alone_for_a_while(self):
+        watch = self._cron_setup()
+        self._gate()
+        with patch.object(unit_module, "CRON_JOB_SECONDS", 0.3):
+            self._cron_calls()
+            self.assertEqual(len(unit_module._INFLIGHT), 1)
+            unit_module._INFLIGHT[0]["started"] -= unit_module.INFLIGHT_MAX_SECONDS + 1
+            reported = self._cron_calls()
+        given_up = watch.unit_ids.filtered(lambda u: u.state == "new")
+        self.assertEqual(len(given_up), 3)
+        # the given-up group is not called again at once, the others are started
+        self.assertEqual(len(unit_module._INFLIGHT), 1)
+        self.assertEqual(reported, [(0, 2)])
+        self.assertEqual(len(unit_module._COOLDOWN), 1)
+
+    def test_malloc_arenas_are_limited_once(self):
+        from ..models.ai_translation_unit import _limit_malloc_arenas
+        self.assertEqual(_limit_malloc_arenas(), _limit_malloc_arenas())
+
+    def test_a_failing_group_does_not_stop_the_others_and_is_not_repeated_at_once(self):
         watch = self._cron_setup(parallel_groups=3)
         real = pipeline.process
         calls = []
@@ -469,13 +565,13 @@ class TestModels(TransactionCase):
             return real(*args, **kwargs)
 
         with patch("odoo.addons.ai_translation_consensus.models.ai_translation_unit.pipeline.process", flaky):
-            self.assertEqual(self._cron_calls(), [(2, 1)])
+            self.assertEqual(self._cron_calls(), [(2, 0)])
+        self.assertEqual(len(calls), 3)
         self.assertEqual(sorted(watch.unit_ids.mapped("state")), ["consensus", "consensus", "new"])
 
     def test_cron_stops_at_the_quota_of_the_interval(self):
         watch = self._cron_setup(max_units_per_run=2)
-        self.assertEqual(self._cron_calls(), [(1, 1)])
-        self.assertEqual(self._cron_calls(), [(1, 0)])
+        self.assertEqual(self._cron_calls(), [(2, 0)])
         self.assertEqual(self._cron_calls(), [(0, 0)])
         self.assertEqual(sorted(watch.unit_ids.mapped("state")), ["consensus", "consensus", "new"])
 
@@ -492,6 +588,7 @@ class TestModels(TransactionCase):
         started_long_ago = time.monotonic() - 100 + MIN_TIME_PER_JOB
         self.assertEqual(self._cron_calls(cron_end_time=started_long_ago), [(0, 3)])
         self.assertEqual(set(watch.unit_ids.mapped("state")), {"new"})
+        self.assertFalse(unit_module._INFLIGHT)
 
     def test_only_managers_switch_the_schedule(self):
         Watch = self.env["ai.translation.watch"]
