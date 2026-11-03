@@ -218,8 +218,9 @@ class AiTranslationUnit(models.Model):
         texts = [i["text"] for i in items]
         glossary = self.env["ai.translation.glossary"]._lines_for(first.lang, texts)
         page = self._page_context(rec, watch, texts)
+        prompt_src, prompt_tgt = watch._prompt_langs(first.source_lang, first.lang)
         results = pipeline.process(
-            watch.kind, first.source_lang, first.lang, items, translators, reviewers,
+            watch.kind, prompt_src, prompt_tgt, items, translators, reviewers,
             glossary=glossary, instructions=watch.instructions or "", page_context=page,
             threshold=watch.threshold, min_score=watch.min_score, max_rounds=watch.max_rounds,
             exclude_self=watch.exclude_self, review_unanimous=watch.review_unanimous)

@@ -32,6 +32,10 @@ class AiTranslationWatch(models.Model):
         help="Translatable fields of the model.")
     source_lang_id = fields.Many2one("res.lang", string="Source language", required=True,
                                      help="The leading language the texts are written in.")
+    text_lang_id = fields.Many2one(
+        "res.lang", string="Text is really written in",
+        help="Only if the texts stored under the source language are in another language "
+             "(e.g. German content kept in the en_US slot). The providers are told this language.")
     target_lang_ids = fields.Many2many("res.lang", string="Target languages")
     instructions = fields.Text(help="Style hints for every provider, e.g. 'Formal address, "
                                     "IT company, keep product names'.")
@@ -127,6 +131,13 @@ class AiTranslationWatch(models.Model):
     def _eval_domain(self):
         self.ensure_one()
         return safe_eval(self.domain or "[]")
+
+    def _prompt_langs(self, src, tgt):
+        """Language codes the providers are told about (the stored slot may lie)."""
+        real = self.text_lang_id.code
+        if not real:
+            return src, tgt
+        return real, (real if self.kind == "proofread" else tgt)
 
     def _langs(self):
         self.ensure_one()

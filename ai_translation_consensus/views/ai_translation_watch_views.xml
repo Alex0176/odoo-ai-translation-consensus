@@ -46,6 +46,7 @@
                         </group>
                         <group>
                             <field name="source_lang_id" options="{'no_create': True}"/>
+                            <field name="text_lang_id" options="{'no_create': True}"/>
                             <field name="target_lang_ids" widget="many2many_tags" options="{'no_create': True}"
                                    invisible="kind == 'proofread'"/>
                             <field name="mode" invisible="kind == 'proofread'"/>

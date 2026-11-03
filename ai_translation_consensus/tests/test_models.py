@@ -1,5 +1,7 @@
 # Copyright 2026 Biricon IT Services GmbH
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
+from unittest.mock import patch
+
 from odoo.exceptions import UserError
 from odoo.tests.common import TransactionCase, tagged
 
@@ -193,6 +195,21 @@ class TestModels(TransactionCase):
         watch.unit_ids._process_group()
         self.assertEqual(watch.unit_ids.state, "applied")
         self.assertEqual(self.partner_cat.with_context(lang="en_US").name, "Machines (corrected)")
+
+    def test_providers_are_told_the_real_text_language(self):
+        seen = []
+        original = ScriptedChat.generate
+
+        def spy(self_, kind, src, tgt, *args, **kw):
+            seen.append((src, tgt))
+            return original(self_, kind, src, tgt, *args, **kw)
+
+        self._provider("one")
+        watch = self._watch(text_lang_id=self.de.id)
+        watch._scan()
+        with patch.object(ScriptedChat, "generate", spy):
+            watch.unit_ids._process_group()
+        self.assertEqual(seen, [("de_DE", "de_DE")])
 
     def test_rule_validation(self):
         with self.assertRaises(Exception):

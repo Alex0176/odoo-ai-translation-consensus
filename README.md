@@ -88,7 +88,9 @@ Needs Odoo 19 and the Python package `requests`. German translation included.
 1. *AI Translation ▸ Providers*: activate and test the services you want to use.
 2. *AI Translation ▸ Glossary* (optional): fixed terms and names.
 3. *AI Translation ▸ Rules*: choose the model, a domain, the fields, the source language
-   and the target languages (or *Proofread*). Add style instructions, e.g. "formal address,
+   and the target languages (or *Proofread*). If the text under the source language code is
+   really in another language (e.g. German kept in the `en_US` slot), set *Text is really
+   written in* so the providers are told the truth. Add style instructions, e.g. "formal address,
    IT company". Press *Scan now*, then *Process one batch*.
 4. *AI Translation ▸ Proposals*: every proposal shows the candidates, who wrote them, the
    scores and remarks. Apply the proposal, apply a candidate, type your own wording, or reject.
