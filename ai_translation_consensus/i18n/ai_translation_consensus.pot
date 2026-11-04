@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Odoo Server 19.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-03 18:54+0000\n"
-"PO-Revision-Date: 2026-11-03 18:54+0000\n"
+"POT-Creation-Date: 2026-11-03 22:02+0000\n"
+"PO-Revision-Date: 2026-11-03 22:02+0000\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "MIME-Version: 1.0\n"
@@ -113,6 +113,18 @@ msgid ""
 msgstr ""
 
 #. module: ai_translation_consensus
+#: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_candidate__back_similarity
+msgid "0-1, how much the back-translation has in common with the source."
+msgstr ""
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_watch__min_back_similarity
+msgid ""
+"0-1. A faithful translation comes back as a paraphrase; below this value the"
+" meaning probably drifted. Texts shorter than 15 characters are not checked."
+msgstr ""
+
+#. module: ai_translation_consensus
 #: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_rating__naturalness
 msgid "1-10: does it read like a native speaker wrote it?"
 msgstr ""
@@ -200,6 +212,15 @@ msgid ""
 "                by which providers. The easiest way to create one is <i>Start here</i> in the menu,\n"
 "                which explains each step. Rules do nothing on their own until you press\n"
 "                <i>Scan now</i> / <i>Process one batch</i> or switch on the scheduled action."
+msgstr ""
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_watch__arbiter_id
+msgid ""
+"A strong reviewer asked only when the normal vote stays split: it chooses "
+"between the two best candidates and settles the text only if it rates the "
+"choice 8 or better in accuracy and naturalness and finds no serious error. "
+"Leave empty for a human decision."
 msgstr ""
 
 #. module: ai_translation_consensus
@@ -355,6 +376,15 @@ msgid "All texts proofread"
 msgstr ""
 
 #. module: ai_translation_consensus
+#: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_watch__strict_checks
+msgid ""
+"An agreement is not applied without a human when half of the reviewers "
+"report a serious error (wrong meaning, something left out or added, left "
+"untranslated), when a fixed glossary translation is missing or when numbers "
+"differ from the source."
+msgstr ""
+
+#. module: ai_translation_consensus
 #: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_provider__api_key
 msgid "Api Key"
 msgstr ""
@@ -409,8 +439,24 @@ msgid "Approval"
 msgstr ""
 
 #. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_watch__arbiter_id
+msgid "Arbiter"
+msgstr ""
+
+#. module: ai_translation_consensus
 #: model_terms:ir.ui.view,arch_db:ai_translation_consensus.view_ai_translation_provider_form
 msgid "Archived"
+msgstr ""
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_watch__audit_percent
+msgid "Audit sample (%)"
+msgstr ""
+
+#. module: ai_translation_consensus
+#. odoo-python
+#: code:addons/ai_translation_consensus/models/ai_translation_unit.py:0
+msgid "Audit sample: please check before it goes live."
 msgstr ""
 
 #. module: ai_translation_consensus
@@ -421,6 +467,11 @@ msgstr ""
 #. module: ai_translation_consensus
 #: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_watch__exclude_self
 msgid "Authors do not vote for their own text"
+msgstr ""
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_watch__auto_apply_max_chars
+msgid "Automatic only up to (characters)"
 msgstr ""
 
 #. module: ai_translation_consensus
@@ -448,6 +499,26 @@ msgstr ""
 #. module: ai_translation_consensus
 #: model_terms:ir.ui.view,arch_db:ai_translation_consensus.view_ai_translation_wizard_form
 msgid "Back"
+msgstr ""
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_candidate__back_provider
+msgid "Back Provider"
+msgstr ""
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_candidate__back_similarity
+msgid "Back Similarity"
+msgstr ""
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_candidate__back_translation
+msgid "Back Translation"
+msgstr ""
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_watch__min_back_similarity
+msgid "Back-translation similarity needed"
 msgstr ""
 
 #. module: ai_translation_consensus
@@ -527,6 +598,11 @@ msgstr ""
 #. module: ai_translation_consensus
 #: model:ir.model.fields.selection,name:ai_translation_consensus.selection__ai_translation_wizard__step__done
 msgid "Check and create"
+msgstr ""
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_watch__back_check
+msgid "Check by translating back"
 msgstr ""
 
 #. module: ai_translation_consensus
@@ -707,6 +783,11 @@ msgid "Domain"
 msgstr ""
 
 #. module: ai_translation_consensus
+#: model:ir.model.fields.selection,name:ai_translation_consensus.selection__ai_translation_candidate__origin__memory
+msgid "Earlier translation of the same text"
+msgstr ""
+
+#. module: ai_translation_consensus
 #: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_watch__provider_ids
 msgid "Empty = all active providers."
 msgstr ""
@@ -736,6 +817,12 @@ msgstr ""
 #. module: ai_translation_consensus
 #: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_usage__errors
 msgid "Errors"
+msgstr ""
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_candidate__flags
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_rating__flags
+msgid "Errors reported"
 msgstr ""
 
 #. module: ai_translation_consensus
@@ -806,6 +893,11 @@ msgid "Good to know"
 msgstr ""
 
 #. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_watch__parallel_groups
+msgid "Groups processed at the same time"
+msgstr ""
+
+#. module: ai_translation_consensus
 #. odoo-javascript
 #: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.xml:0
 msgid "Hide details"
@@ -821,6 +913,11 @@ msgstr ""
 #. module: ai_translation_consensus
 #: model_terms:ir.ui.view,arch_db:ai_translation_consensus.view_ai_translation_wizard_form
 msgid "Hints for the providers"
+msgstr ""
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_watch__strict_checks
+msgid "Hold back agreed texts with serious errors"
 msgstr ""
 
 #. module: ai_translation_consensus
@@ -907,6 +1004,11 @@ msgstr ""
 #: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_watch__kind
 #: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_wizard__kind
 msgid "Kind"
+msgstr ""
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_candidate__flags
+msgid "Kinds of error the reviewers named, with the number of reviewers."
 msgstr ""
 
 #. module: ai_translation_consensus
@@ -1014,6 +1116,12 @@ msgstr ""
 msgid ""
 "Leave the providers empty to use every active provider that is ready. A hint about the\n"
 "                        subject area helps most with single words and short labels."
+msgstr ""
+
+#. module: ai_translation_consensus
+#. odoo-python
+#: code:addons/ai_translation_consensus/models/ai_translation_unit.py:0
+msgid "Longer than %s characters: please check before it goes live."
 msgstr ""
 
 #. module: ai_translation_consensus
@@ -1156,6 +1264,7 @@ msgstr ""
 
 #. module: ai_translation_consensus
 #. odoo-python
+#: code:addons/ai_translation_consensus/models/ai_translation_watch.py:0
 #: code:addons/ai_translation_consensus/models/ai_translation_wizard.py:0
 msgid "No usable provider. Activate and test at least one under Providers."
 msgstr ""
@@ -1307,6 +1416,11 @@ msgid "Page context (characters)"
 msgstr ""
 
 #. module: ai_translation_consensus
+#: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_watch__max_units_per_run
+msgid "Per rule and cron interval. 0 = no limit."
+msgstr ""
+
+#. module: ai_translation_consensus
 #: model_terms:ir.ui.view,arch_db:ai_translation_consensus.view_ai_translation_wizard_form
 msgid "Press Next to create your first rule."
 msgstr ""
@@ -1413,21 +1527,6 @@ msgstr ""
 #. module: ai_translation_consensus
 #: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_watch__max_units_per_run
 msgid "Proposals processed per cron run"
-msgstr ""
-
-#. module: ai_translation_consensus
-#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_watch__parallel_groups
-msgid "Groups processed at the same time"
-msgstr ""
-
-#. module: ai_translation_consensus
-#: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_watch__parallel_groups
-msgid "The scheduled action sends this many groups (texts of one record in one language) to the providers at once. Higher is faster and hits the providers' rate limits sooner; 1 = one after the other."
-msgstr ""
-
-#. module: ai_translation_consensus
-#: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_watch__max_units_per_run
-msgid "Per rule and cron interval. 0 = no limit."
 msgstr ""
 
 #. module: ai_translation_consensus
@@ -1999,6 +2098,14 @@ msgid "The action failed."
 msgstr ""
 
 #. module: ai_translation_consensus
+#: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_watch__back_check
+msgid ""
+"The agreed text is translated back into the source language by a provider "
+"that did not write it. A result that has little in common with the source "
+"sends the text to a human. Costs one more request per group of texts."
+msgstr ""
+
+#. module: ai_translation_consensus
 #. odoo-javascript
 #: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.xml:0
 msgid "The data could not be loaded."
@@ -2051,6 +2158,14 @@ msgid "The record does not exist any more."
 msgstr ""
 
 #. module: ai_translation_consensus
+#: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_watch__parallel_groups
+msgid ""
+"The scheduled action sends this many groups (texts of one record in one "
+"language) to the providers at once. Higher is faster and hits the providers'"
+" rate limits sooner; 1 = one after the other."
+msgstr ""
+
+#. module: ai_translation_consensus
 #. odoo-javascript
 #: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.xml:0
 msgid "The search is not finished yet; more records follow."
@@ -2089,6 +2204,13 @@ msgstr ""
 msgid ""
 "The surrounding page is given to every provider as context, so single words are\n"
 "                            understood in their setting. Set the hints and the glossary for technical terms."
+msgstr ""
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_candidate__back_translation
+msgid ""
+"The text translated back into the source language by a provider that did not"
+" write it."
 msgstr ""
 
 #. module: ai_translation_consensus
@@ -2338,6 +2460,21 @@ msgstr ""
 #. module: ai_translation_consensus
 #: model:ir.model.fields.selection,name:ai_translation_consensus.selection__ai_translation_wizard__step__who
 msgid "Who translates and reviews"
+msgstr ""
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_watch__auto_apply_max_chars
+msgid ""
+"With automatic application: agreed texts whose source is longer than this "
+"wait for a human. 0 = no limit."
+msgstr ""
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_watch__audit_percent
+msgid ""
+"With automatic application: this share of the agreed texts is held back for "
+"a human to check instead (chosen by a fixed pattern, not at random). The "
+"rate of corrections tells how far to trust the rule."
 msgstr ""
 
 #. module: ai_translation_consensus

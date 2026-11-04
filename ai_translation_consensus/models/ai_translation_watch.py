@@ -1,6 +1,7 @@
 # Copyright 2026 Biricon IT Services GmbH
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
 import logging
+import time
 from datetime import timedelta
 
 from markupsafe import Markup, escape
@@ -10,6 +11,10 @@ from odoo.exceptions import UserError, ValidationError
 from odoo.tools.safe_eval import safe_eval
 
 from .ai_translation_unit import OPEN_STATES
+
+SCAN_RESERVE_SECONDS = 5
+SCAN_EVERY_SECONDS = 300       # a scan takes seconds; the cron is called every minute while work is left
+_LAST_SCAN = {}                # db -> time.monotonic() of the last automatic scan
 
 _logger = logging.getLogger(__name__)
 
@@ -69,6 +74,34 @@ class AiTranslationWatch(models.Model):
     review_unanimous = fields.Boolean(
         string="Review even when all translators agree",
         help="Costs one more call per provider; off by default.")
+    strict_checks = fields.Boolean(
+        string="Hold back agreed texts with serious errors", default=True,
+        help="An agreement is not applied without a human when half of the reviewers report a serious "
+             "error (wrong meaning, something left out or added, left untranslated), when a fixed "
+             "glossary translation is missing or when numbers differ from the source.")
+    back_check = fields.Boolean(
+        string="Check by translating back",
+        help="The agreed text is translated back into the source language by a provider that did not "
+             "write it. A result that has little in common with the source sends the text to a human. "
+             "Costs one more request per group of texts.")
+    min_back_similarity = fields.Float(
+        string="Back-translation similarity needed", default=0.3,
+        help="0-1. A faithful translation comes back as a paraphrase; below this value the meaning "
+             "probably drifted. Texts shorter than 15 characters are not checked.")
+    arbiter_id = fields.Many2one(
+        "ai.translation.provider", string="Arbiter", ondelete="set null",
+        help="A strong reviewer asked only when the normal vote stays split: it chooses between the two "
+             "best candidates and settles the text only if it rates the choice 8 or better in accuracy "
+             "and naturalness and finds no serious error. Leave empty for a human decision.")
+    auto_apply_max_chars = fields.Integer(
+        string="Automatic only up to (characters)",
+        help="With automatic application: agreed texts whose source is longer than this wait for a "
+             "human. 0 = no limit.")
+    audit_percent = fields.Float(
+        string="Audit sample (%)",
+        help="With automatic application: this share of the agreed texts is held back for a human "
+             "to check instead (chosen by a fixed pattern, not at random). The rate of corrections "
+             "tells how far to trust the rule.")
     batch_size = fields.Integer(default=10, help="Texts per request.")
     context_chars = fields.Integer(string="Page context (characters)", default=3000,
                                    help="How much of the surrounding page text each provider sees.")
@@ -149,6 +182,17 @@ class AiTranslationWatch(models.Model):
             if prov.role in ("both", "review") and impl.can_review:
                 reviewers.append(impl)
         return translators, reviewers
+
+    def _pick_arbiter(self):
+        """The arbiter as provider object, or None when it is not set or not usable."""
+        self.ensure_one()
+        prov = self.arbiter_id
+        if not prov or not prov.active or (self.confidential and not prov.is_local):
+            return None
+        impl = prov._impl()
+        if (impl.needs_key and not impl.key) or not impl.can_review:
+            return None
+        return impl
 
     # ------------------------------------------------------------ scanning
     def _eval_domain(self):
@@ -241,7 +285,16 @@ class AiTranslationWatch(models.Model):
     @api.model
     def _cron_run(self):
         """Scan all automatic rules, then process queued proposals within the time budget."""
-        for watch in self.search([("auto_scan", "=", True)]):
+        db = self.env.cr.dbname
+        deadline = self.env["ai.translation.unit"]._cron_deadline()
+        now = time.monotonic()
+        # The worker's watchdog counts every second of the cron pass, so scan only now and then
+        # and only while the budget of this run lasts.
+        scanning = now - _LAST_SCAN.get(db, -SCAN_EVERY_SECONDS) >= SCAN_EVERY_SECONDS \
+            and now <= deadline - SCAN_RESERVE_SECONDS
+        if scanning:
+            _LAST_SCAN[db] = now
+        for watch in self.search([("auto_scan", "=", True)]) if scanning else self.browse():
             try:
                 with self.env.cr.savepoint():
                     watch._scan(full=False)

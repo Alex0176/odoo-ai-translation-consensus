@@ -18,6 +18,7 @@ class AiTranslationCandidate(models.Model):
     origin = fields.Selection([
         ("translation", "Translation"),
         ("original", "Original text"),
+        ("memory", "Earlier translation of the same text"),
         ("revision", "Reviewer suggestion"),
     ], default="translation")
     valid = fields.Boolean(default=True)
@@ -27,6 +28,12 @@ class AiTranslationCandidate(models.Model):
     vote_share = fields.Float(string="Favourite votes")
     rank_score = fields.Float()
     remarks = fields.Text(string="Reviewer remarks")
+    flags = fields.Char(string="Errors reported", help="Kinds of error the reviewers named, with the "
+                                                       "number of reviewers.")
+    back_translation = fields.Text(help="The text translated back into the source language by a "
+                                        "provider that did not write it.")
+    back_similarity = fields.Float(help="0-1, how much the back-translation has in common with the source.")
+    back_provider = fields.Char()
     is_winner = fields.Boolean(string="Best")
     rating_ids = fields.One2many("ai.translation.rating", "candidate_id")
 

@@ -104,6 +104,23 @@
         </field>
     </record>
 
+    <record id="view_ai_translation_unit_form_crosscheck" model="ir.ui.view">
+        <field name="name">ai.translation.unit.form.crosscheck</field>
+        <field name="model">ai.translation.unit</field>
+        <field name="inherit_id" ref="view_ai_translation_unit_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='candidate_ids']/list/field[@name='problems']" position="after">
+                <field name="flags"/>
+                <field name="back_translation" optional="hide"/>
+                <field name="back_similarity" optional="hide"/>
+                <field name="back_provider" optional="hide"/>
+            </xpath>
+            <xpath expr="//field[@name='rating_ids']/list/field[@name='favourite']" position="after">
+                <field name="flags"/>
+            </xpath>
+        </field>
+    </record>
+
     <record id="view_ai_translation_unit_search" model="ir.ui.view">
         <field name="name">ai.translation.unit.search</field>
         <field name="model">ai.translation.unit</field>

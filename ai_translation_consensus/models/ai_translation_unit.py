@@ -1,6 +1,7 @@
 # Copyright 2026 Biricon IT Services GmbH
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
 import ctypes
+import hashlib
 import logging
 import threading
 import time
@@ -22,7 +23,7 @@ _logger = logging.getLogger(__name__)
 # the sleep between two passes (about a minute) plus every due job (mail, Ortung ...) on the single
 # cron worker. So a cron call here only waits a few seconds; the providers keep working in threads
 # of the worker process between the calls and the next call collects what has arrived.
-CRON_JOB_SECONDS = 15           # one cron call neither starts nor awaits groups after this
+CRON_JOB_SECONDS = 8            # one cron call neither starts nor awaits groups after this
 INFLIGHT_MAX_SECONDS = 900      # a group still waiting for its providers after this is given up (stays queued)
 COOLDOWN_SECONDS = 300          # a group that failed or was given up is not started again for this long
 MAX_THREADS = 24
@@ -269,9 +270,7 @@ class AiTranslationUnit(models.Model):
         if not cron:
             return
         db = self.env.cr.dbname
-        job_end = self.env.context.get("cron_end_time")
-        job_start = job_end - MIN_TIME_PER_JOB if job_end else time.monotonic()
-        deadline = job_start + CRON_JOB_SECONDS
+        deadline = self._cron_deadline()
         handled = self._cron_collect(db)
         started, queued, tried = 0, 0, False
         if time.monotonic() < deadline:
@@ -298,6 +297,13 @@ class AiTranslationUnit(models.Model):
         if tried and not (handled or started or in_flight):
             remaining = 0
         self.env["ir.cron"]._commit_progress(handled, remaining=remaining)
+
+    @api.model
+    def _cron_deadline(self):
+        """Point in time (monotonic) after which this cron run starts no more work."""
+        job_end = self.env.context.get("cron_end_time")
+        job_start = job_end - MIN_TIME_PER_JOB if job_end else time.monotonic()
+        return job_start + CRON_JOB_SECONDS
 
     @api.model
     def _cron_start(self, cron, db, dry=False):
@@ -463,17 +469,37 @@ class AiTranslationUnit(models.Model):
                   "after": u.ctx_after or ""} for u in fresh]
         texts = [i["text"] for i in items]
         prompt_src, prompt_tgt = watch._prompt_langs(first.source_lang, first.lang)
+        glossary_model = self.env["ai.translation.glossary"]
+        arbiter = watch._pick_arbiter()
         return len(units) - len(fresh), {
             "group": self, "units": units, "fresh": fresh, "watch": watch, "lang": first.lang,
             "name": watch.name,
             "translators": translators, "reviewers": reviewers,
+            "extra": [arbiter] if arbiter else [],
             "args": (watch.kind, prompt_src, prompt_tgt, items, translators, reviewers),
             "kwargs": dict(
-                glossary=self.env["ai.translation.glossary"]._lines_for(first.lang, texts),
+                glossary=glossary_model._lines_for(first.lang, texts),
+                terms=glossary_model._entries_for(first.lang, texts),
                 instructions=watch.instructions or "", page_context=self._page_context(rec, watch, texts),
                 threshold=watch.threshold, min_score=watch.min_score, max_rounds=watch.max_rounds,
-                exclude_self=watch.exclude_self, review_unanimous=watch.review_unanimous),
+                exclude_self=watch.exclude_self, review_unanimous=watch.review_unanimous,
+                strict=watch.strict_checks, memory=fresh._memory(), arbiter=arbiter,
+                back_check=watch.back_check, min_back_similarity=watch.min_back_similarity),
         }
+
+    def _memory(self):
+        """``{unit id: text}``: the latest applied translation of the same source text into the same
+        language, so that the wording stays consistent across the website."""
+        first = self[:1]
+        if not first or first.kind != "translate":
+            return {}
+        rows = self.search_read([
+            ("state", "=", "applied"), ("kind", "=", "translate"), ("lang", "=", first.lang),
+            ("source_lang", "=", first.source_lang), ("source_hash", "in", self.mapped("source_hash")),
+            ("id", "not in", self.ids), ("final_text", "!=", False)],
+            ["source_hash", "final_text"], order="applied_date asc, id asc")
+        latest = {row["source_hash"]: row["final_text"] for row in rows}      # the newest wins
+        return {str(u.id): latest[u.source_hash] for u in self if u.source_hash in latest}
 
     @staticmethod
     def _run_job(job):
@@ -497,10 +523,28 @@ class AiTranslationUnit(models.Model):
             unit._store_result(results[str(unit.id)], errors, watch)
         fresh.write({"processed_at": fields.Datetime.now(), "process_seconds": elapsed / len(fresh)})
         self.env["ai.translation.usage"]._log(
-            watch, job["translators"] + job["reviewers"], job["lang"], len(fresh))
-        (fresh.filtered(lambda u: u.state == "consensus" and watch.auto_apply))._apply_all(auto=True)
+            watch, job["translators"] + job["reviewers"] + job.get("extra", []), job["lang"], len(fresh))
+        if watch.auto_apply:
+            agreed = fresh.filtered(lambda u: u.state == "consensus")
+            held = agreed.filtered(lambda u: u._hold_back(watch))
+            (agreed - held)._apply_all(auto=True)
         watch._check_completion()
         return len(fresh)
+
+    def _hold_back(self, watch):
+        """Keep an agreed text for a human although the rule applies automatically: too long for the
+        rule's limit, or picked for the audit sample. Returns True when it is held back."""
+        self.ensure_one()
+        reason = ""
+        if watch.auto_apply_max_chars > 0 and len(self.source_text) > watch.auto_apply_max_chars:
+            reason = _("Longer than %s characters: please check before it goes live.") % watch.auto_apply_max_chars
+        elif watch.audit_percent > 0:
+            bucket = int(hashlib.sha1(str(self.id).encode()).hexdigest()[:8], 16) % 10000
+            if bucket < watch.audit_percent * 100:
+                reason = _("Audit sample: please check before it goes live.")
+        if reason:
+            self.reason = reason
+        return bool(reason)
 
     def _page_context(self, rec, watch, texts):
         src = self[0].source_lang
@@ -538,6 +582,10 @@ class AiTranslationUnit(models.Model):
                 "valid": group.valid,
                 "problems": "; ".join(res.issues.get(key) or []),
                 "warnings": "; ".join(res.warnings.get(key) or []),
+                "flags": ", ".join("%s x%d" % kv for kv in sorted((stat.flags if stat else {}).items())),
+                "back_translation": res.back[key][0] if key in res.back else False,
+                "back_similarity": res.back[key][1] if key in res.back else 0.0,
+                "back_provider": res.back[key][2] if key in res.back else False,
                 "avg_score": stat.avg_score if stat else 0.0,
                 "vote_share": stat.vote_share if stat else 0.0,
                 "rank_score": stat.rank_score if stat else 0.0,
@@ -552,6 +600,7 @@ class AiTranslationUnit(models.Model):
                         "unit_id": self.id, "round_no": round_no, "reviewer": rating.reviewer,
                         "candidate_id": by_key[key].id, "accuracy": acc, "naturalness": nat,
                         "favourite": rating.best == key, "remark": rating.issues.get(key, ""),
+                        "flags": ", ".join(rating.flags.get(key, [])),
                     })
         self.env["ai.translation.rating"].create(rating_vals)
 

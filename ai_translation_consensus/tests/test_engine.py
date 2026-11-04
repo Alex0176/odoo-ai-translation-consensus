@@ -15,8 +15,11 @@ class FakeProvider(BaseProvider):
     kind = "fake"
     can_review = True
 
-    def __init__(self, name, texts=None, favourite=None, fail=False, suggestion=None, can_review=True):
+    def __init__(self, name, texts=None, favourite=None, fail=False, suggestion=None, can_review=True,
+                 flags=None, good_score=9.0):
         super().__init__({"name": name})
+        self.flags = flags or {}                  # text marker -> kinds of error reported
+        self.good_score = good_score
         self.texts = texts or {}
         self.favourite = favourite
         self.fail = fail
@@ -42,10 +45,12 @@ class FakeProvider(BaseProvider):
             scores, best = {}, ""
             for label, text, _warn in item["cands"]:
                 good = self.favourite and self.favourite in text
-                scores[label] = (9.0, 9.0) if good else (5.0, 5.0)
+                scores[label] = (self.good_score,) * 2 if good else (5.0, 5.0)
                 if good:
                     best = label
-            out[str(item["id"])] = {"scores": scores, "best": best, "issues": {},
+            flags = {label: kinds for label, text, _warn in item["cands"]
+                     for marker, kinds in self.flags.items() if marker in text}
+            out[str(item["id"])] = {"scores": scores, "best": best, "issues": {}, "flags": flags,
                                     "suggestion": self.suggestion}
         return out
 
@@ -84,6 +89,75 @@ class TestChecks(BaseCase):
         errors, _w = checks.check("Wir haben 3 Büros", "Wir haben vier Büros", "proofread")
         self.assertIn("numbers differ", errors)
         self.assertEqual(checks.check("Wir haben 3 Büros", "Wir haben vier Büros", "translate")[0], [])
+
+
+@tagged("standard", "at_install")
+class TestCrossChecks(BaseCase):
+    def test_script_of_the_target_language(self):
+        english = "Our offices in Vienna are open"
+        self.assertEqual(checks.check(english, "Наши офисы в Вене открыты", "translate", "ru_RU")[0], [])
+        self.assertIn("not written in the script of the target language",
+                      checks.check(english, english, "translate", "ru_RU")[0])
+        self.assertIn("not written in the script of the target language",
+                      checks.check(english, "Наши офисы в Вене открыты", "translate", "de_DE")[0])
+        self.assertEqual(checks.check(english, "维也纳的办公室开放", "translate", "zh_CN")[0], [])
+        # a brand name next to a few Chinese characters is no wrong script, a short text is not judged
+        self.assertEqual(checks.check("Odoo ERP consulting", "Odoo ERP 咨询服务", "translate", "zh_CN")[0], [])
+        self.assertEqual(checks.check("Contact", "Contact", "translate", "ru_RU")[0], [])
+        # languages written in several scripts are not judged
+        self.assertEqual(checks.check(english, english, "translate", "sr_RS")[0], [])
+
+    def test_numbers_in_other_digits_and_separators(self):
+        self.assertEqual(checks.check("3 offices, 1,000 clients", "٣ مكاتب، ١٬٠٠٠ عميل", "translate", "ar_001"), ([], []))
+        self.assertEqual(checks.check("1.000 Euro", "1,000 euros", "translate", "en_GB"), ([], []))
+        self.assertIn("numbers differ", checks.check("3 offices", "4 Büros", "translate", "de_DE")[1])
+        self.assertIn("numbers differ", checks.check("250 offices", "Büros", "translate", "de_DE")[1])
+        # a single digit written out is no reason to hold a text back, a proofread keeps it
+        self.assertEqual(checks.check("0 day attacks", "Zero-Day-Angriffe", "translate", "de_DE"), ([], []))
+        self.assertIn("numbers differ", checks.check("0 day attacks", "Zero-Day-Angriffe", "proofread", "en_US")[0])
+
+    def test_glossary(self):
+        terms = [("Biricon", ""), ("support", "Support")]
+        errors, warnings = checks.check("Biricon support", "Wir helfen", "translate", "de_DE", terms)
+        self.assertEqual(errors, ['glossary: "Biricon" must stay unchanged'])
+        self.assertEqual(warnings, ['glossary: "support" should be "Support"'])
+        self.assertEqual(checks.check("Biricon support", "Biricon-Support", "translate", "de_DE", terms), ([], []))
+        # in another script the name may be transliterated: only a warning
+        errors, warnings = checks.check("Biricon builds Odoo", "Мы строим Odoo", "translate", "ru_RU", [("Biricon", "")])
+        self.assertEqual(errors, [])
+        self.assertEqual(len(warnings), 1)
+
+    def test_back_similarity(self):
+        source = "We build websites for small companies in Austria"
+        self.assertGreater(checks.back_similarity(source, "We make web sites for small companies in Austria"), 0.6)
+        self.assertGreater(checks.back_similarity(source, "We build websites for small businesses in Austria"), 0.6)
+        self.assertLess(checks.back_similarity(source, "Our invoices are paid within thirty days"), 0.3)
+        self.assertEqual(checks.back_similarity(source, ""), 0.0)
+        self.assertEqual(checks.back_similarity("<b>Hello</b> world", "hello WORLD!"), 1.0)
+
+    def test_review_flags_are_parsed(self):
+        raw = ('{"1": {"scores": {"A": {"accuracy": 4, "naturalness": 8, "errors": ["Omission", "wrong_term", "none"]},'
+               ' "B": {"accuracy": 9, "naturalness": 9, "errors": []}}, "best": "B"}}')
+        got = prompts.parse_review(raw, ["1"])["1"]
+        self.assertEqual(got["flags"], {"A": ["omission", "wrong-term"]})
+        system, user = prompts.review_prompt("translate", "English", "German", [
+            {"id": "1", "text": "x", "cands": [("A", "y", [])]}])
+        self.assertIn("omission", system + user)
+        _s, user = prompts.review_prompt("proofread", "German", "German", [
+            {"id": "1", "text": "x", "cands": [("A", "y", [])]}])
+        self.assertIn("meaning-changed", user)
+
+    def test_serious_error_blocks_the_agreement(self):
+        groups = {"a": consensus.Group("a", "x", {"p1"}), "b": consensus.Group("b", "y", {"p2"})}
+        ratings = [consensus.Rating("r1", {"a": (9, 9), "b": (5, 5)}, "a", flags={"a": ["omission"]}),
+                   consensus.Rating("r2", {"a": (9, 9), "b": (5, 5)}, "a", flags={"a": ["style"]})]
+        stats = consensus.aggregate(groups, ratings, exclude_self=False)
+        self.assertEqual(stats["a"].critical_share, 0.5)
+        self.assertEqual(stats["a"].flags, {"omission": 1, "style": 1})
+        self.assertEqual(consensus.decide(groups, stats, ratings).state, "consensus")
+        decision = consensus.decide(groups, stats, ratings, critical_limit=0.5)
+        self.assertEqual(decision.state, "review")
+        self.assertIn("omission", decision.reason)
 
 
 @tagged("standard", "at_install")
@@ -238,3 +312,117 @@ class TestPipeline(BaseCase):
     def test_nothing_answers(self):
         res = self.run_pipeline([FakeProvider("a", fail=True)], [])["1"]
         self.assertEqual(res.decision.winner, "")
+
+
+@tagged("standard", "at_install")
+class TestPipelineCrossChecks(BaseCase):
+    sentence = "Please contact our office in Vienna"
+    items = [{"id": "1", "text": sentence, "before": "", "after": ""}]
+
+    def run_pipeline(self, translators, reviewers, items=None, tgt="de_DE", **kw):
+        return pipeline.process("translate", "en_US", tgt, items or self.items, translators, reviewers, **kw)
+
+    def test_text_in_the_wrong_script_never_wins(self):
+        a = FakeProvider("a", {self.sentence: self.sentence}, favourite="Please")
+        b = FakeProvider("b", {self.sentence: "Пожалуйста, свяжитесь с нашим офисом в Вене"}, favourite="Пожалуйста")
+        res = self.run_pipeline([a, b], [a, b], tgt="ru_RU")["1"]
+        self.assertEqual(res.groups[res.decision.winner].text, "Пожалуйста, свяжитесь с нашим офисом в Вене")
+        self.assertTrue(any("script" in " ".join(v) for v in res.issues.values()))
+
+    def test_a_term_that_must_stay_unchanged_is_enforced(self):
+        items = [{"id": "1", "text": "Biricon builds websites"}]
+        a = FakeProvider("a", {"Biricon builds websites": "Der Anbieter baut Webseiten"}, favourite="Anbieter")
+        b = FakeProvider("b", {"Biricon builds websites": "Biricon baut Webseiten"}, favourite="Biricon")
+        res = self.run_pipeline([a, b], [a, b], items=items, terms=[("Biricon", "")])["1"]
+        self.assertEqual(res.groups[res.decision.winner].text, "Biricon baut Webseiten")
+
+    def test_changed_numbers_hold_back_an_agreement(self):
+        items = [{"id": "1", "text": "We have 3 offices in Austria"}]
+        table = {"We have 3 offices in Austria": "Wir haben 4 Büros in Österreich"}
+        a, b = FakeProvider("a", table, can_review=False), FakeProvider("b", table, can_review=False)
+        res = self.run_pipeline([a, b], [], items=items)["1"]
+        self.assertEqual((res.decision.state, res.decision.reason), ("review", "numbers differ from the source"))
+        res = self.run_pipeline([a, b], [], items=items, strict=False)["1"]
+        self.assertEqual(res.decision.state, "consensus")
+
+    def test_a_serious_error_reported_by_reviewers_holds_back_an_agreement(self):
+        table = {self.sentence: "Bitte kontaktieren Sie unser Büro"}
+        a, b = FakeProvider("a", table, favourite="Bitte"), FakeProvider("b", table, favourite="Bitte")
+        r = FakeProvider("r", favourite="Bitte", flags={"Bitte": ["omission"]})
+        res = self.run_pipeline([a, b], [r], review_unanimous=True)["1"]
+        self.assertEqual(res.decision.state, "review")
+        self.assertIn("serious error", res.decision.reason)
+        self.assertEqual(self.run_pipeline([a, b], [r], review_unanimous=True, strict=False)["1"].decision.state,
+                         "consensus")
+
+    def _split(self):
+        table_a, table_b = {self.sentence: "Bitte Kontakt aufnehmen"}, {self.sentence: "Bitte Anfrage senden"}
+        return (FakeProvider("a", table_a, can_review=False), FakeProvider("b", table_b, can_review=False),
+                FakeProvider("r1", favourite="Kontakt"), FakeProvider("r2", favourite="Anfrage"))
+
+    def test_split_vote_stays_with_a_human_without_arbiter(self):
+        a, b, r1, r2 = self._split()
+        res = self.run_pipeline([a, b], [r1, r2])["1"]
+        self.assertEqual(res.decision.state, "review")
+
+    def test_arbiter_settles_a_split_vote(self):
+        a, b, r1, r2 = self._split()
+        arbiter = FakeProvider("arbiter", favourite="Kontakt")
+        res = self.run_pipeline([a, b], [r1, r2], arbiter=arbiter)["1"]
+        self.assertEqual(res.decision.state, "consensus")
+        self.assertEqual(res.decision.settled_by, "arbiter")
+        self.assertEqual(res.groups[res.decision.winner].text, "Bitte Kontakt aufnehmen")
+        self.assertIn("arbiter", {r.reviewer for _n, r in res.history})
+
+    def test_arbiter_needs_a_convincing_verdict(self):
+        a, b, r1, r2 = self._split()
+        hesitant = FakeProvider("arbiter", favourite="Kontakt", good_score=7.0)
+        self.assertEqual(self.run_pipeline([a, b], [r1, r2], arbiter=hesitant)["1"].decision.state, "review")
+        flagging = FakeProvider("arbiter", favourite="Kontakt", flags={"Kontakt": ["mistranslation"]})
+        self.assertEqual(self.run_pipeline([a, b], [r1, r2], arbiter=flagging)["1"].decision.state, "review")
+        # the arbiter does not judge a text it wrote itself
+        a.name = "arbiter"
+        author = FakeProvider("arbiter", favourite="Kontakt")
+        self.assertEqual(self.run_pipeline([a, b], [r1, r2], arbiter=author)["1"].decision.state, "review")
+
+    def test_back_translation_confirms_or_rejects(self):
+        table = {self.sentence: "Bitte kontaktieren Sie unser Büro in Wien"}
+        a, b = FakeProvider("a", table, can_review=False), FakeProvider("b", table, can_review=False)
+        faithful = FakeProvider("c", {"Bitte kontaktieren Sie unser Büro in Wien": "Please contact our office in Vienna"},
+                                can_review=False)
+        res = self.run_pipeline([a, b, faithful], [], back_check=True)["1"]
+        self.assertEqual(res.decision.state, "consensus")
+        key = res.decision.winner
+        self.assertEqual(res.back[key][2], "c")                  # not one of the authors
+        self.assertGreater(res.back[key][1], 0.9)
+        drifted = FakeProvider("c", {"Bitte kontaktieren Sie unser Büro in Wien": "The weather is nice today and we like it"},
+                               can_review=False)
+        res = self.run_pipeline([a, b, drifted], [], back_check=True)["1"]
+        self.assertEqual(res.decision.state, "review")
+        self.assertIn("back-translation", res.decision.reason)
+        self.assertTrue(any("back-translation" in w for w in res.warnings[res.decision.winner]))
+        # without a provider that did not write the text nothing is checked
+        res = self.run_pipeline([a, b], [], back_check=True)["1"]
+        self.assertEqual((res.decision.state, res.back), ("consensus", {}))
+        # short texts are not checked
+        short = FakeProvider("c", {"Kontakt": "Invoice"}, can_review=False)
+        items = [{"id": "1", "text": "Contact"}]
+        a2, b2 = FakeProvider("a", {"Contact": "Kontakt"}, can_review=False), FakeProvider("b", {"Contact": "Kontakt"}, can_review=False)
+        self.assertEqual(self.run_pipeline([a2, b2, short], [], items=items, back_check=True)["1"].decision.state,
+                         "consensus")
+
+    def test_an_earlier_translation_is_one_more_candidate(self):
+        table = {self.sentence: "Bitte kontaktieren Sie unser Büro in Wien"}
+        a, b = (FakeProvider("a", table, favourite="Bitte kontaktieren"),
+                FakeProvider("b", {self.sentence: "Bitte melden Sie sich in Wien"}, favourite="Bitte kontaktieren"))
+        out = self.run_pipeline([a, b], [a, b], memory={"1": "Bitte kontaktieren Sie unser Büro in Wien"})["1"]
+        authors = {g.text: g.authors for g in out.groups.values()}
+        self.assertEqual(authors["Bitte kontaktieren Sie unser Büro in Wien"], {"a", "memory"})
+        self.assertEqual(out.decision.state, "consensus")
+        # the memory alone never counts as a translator's agreement, and hides no outage
+        down = FakeProvider("down", fail=True)
+        out = self.run_pipeline([down], [], memory={"1": "Bitte kontaktieren Sie unser Büro in Wien"})["1"]
+        self.assertEqual(out.groups, {})
+        only = FakeProvider("only", {self.sentence: "Bitte kontaktieren Sie unser Büro in Wien"}, can_review=False)
+        out = self.run_pipeline([only], [], memory={"1": "Bitte kontaktieren Sie unser Büro in Wien"})["1"]
+        self.assertEqual(out.decision.state, "review")

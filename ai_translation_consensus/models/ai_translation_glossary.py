@@ -17,17 +17,19 @@ class AiTranslationGlossary(models.Model):
     active = fields.Boolean(default=True)
 
     @api.model
-    def _lines_for(self, lang_code, texts):
-        """Glossary lines for the terms that occur in ``texts`` (case-insensitive)."""
+    def _entries_for(self, lang_code, texts):
+        """``[(term, translation or "")]`` for the terms that occur in ``texts`` (case-insensitive)."""
         haystack = "\n".join(texts).casefold()
-        lines = []
+        entries = []
         for entry in self.search([("active", "=", True)]):
             if entry.lang_id and entry.lang_id.code != lang_code:
                 continue
-            if entry.term.casefold() not in haystack:
-                continue
-            if entry.translation:
-                lines.append('"%s" -> "%s"' % (entry.term, entry.translation))
-            else:
-                lines.append('"%s" -> keep unchanged' % entry.term)
-        return lines
+            if entry.term.casefold() in haystack:
+                entries.append((entry.term, entry.translation or ""))
+        return entries
+
+    @api.model
+    def _lines_for(self, lang_code, texts):
+        """Glossary lines for the prompt."""
+        return ['"%s" -> "%s"' % (term, fixed) if fixed else '"%s" -> keep unchanged' % term
+                for term, fixed in self._entries_for(lang_code, texts)]

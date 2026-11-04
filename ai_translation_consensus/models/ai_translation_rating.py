@@ -15,4 +15,5 @@ class AiTranslationRating(models.Model):
     accuracy = fields.Integer(help="1-10: is the meaning conveyed completely and correctly?")
     naturalness = fields.Integer(help="1-10: does it read like a native speaker wrote it?")
     favourite = fields.Boolean()
+    flags = fields.Char(string="Errors reported")
     remark = fields.Char()

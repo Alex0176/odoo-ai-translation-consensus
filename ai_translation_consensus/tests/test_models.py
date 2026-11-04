@@ -11,6 +11,7 @@ from odoo.tests.common import TransactionCase, tagged
 from .. import providers
 from ..engine import pipeline
 from ..models import ai_translation_unit as unit_module
+from ..models import ai_translation_watch as watch_module
 from ..providers.base import ChatProvider
 from ..providers.http import ProviderError
 
@@ -172,6 +173,86 @@ class TestModels(TransactionCase):
         watch._scan()
         watch.unit_ids._process_group()
         self.assertEqual(ScriptedChat.last_glossary, ['"Machines" -> "Anlagen"'])
+
+    def test_long_texts_and_the_audit_sample_wait_for_a_human(self):
+        self._provider("one")
+        self._provider("two")
+        watch = self._watch(auto_apply=True, auto_apply_max_chars=5)
+        watch._scan()
+        unit = watch.unit_ids
+        unit._process_group()
+        self.assertEqual(unit.state, "consensus")
+        self.assertIn("5", unit.reason)                   # the reason is written in the user's language
+        unit.action_approve()
+        self.assertEqual(unit.state, "applied")
+        # every text is in the audit sample at 100 %, none at 0 %
+        for percent, state in ((100.0, "consensus"), (0.0, "applied")):
+            other = self.env["res.partner.category"].create({"name": "Machines"})
+            watch2 = self._watch(name="audit %s" % percent, auto_apply=True, audit_percent=percent,
+                                 domain="[('id', '=', %d)]" % other.id)
+            watch2._scan()
+            watch2.unit_ids._process_group()
+            self.assertEqual(watch2.unit_ids.state, state)
+            if percent:
+                self.assertNotIn("agree", watch2.unit_ids.reason)          # replaced by the hold-back reason
+
+    def test_an_earlier_translation_of_the_same_text_is_offered_as_candidate(self):
+        self._provider("one")
+        self._provider("two")
+        first = self._watch()
+        first._scan()
+        earlier = first.unit_ids
+        earlier._process_group()
+        earlier.action_approve()
+        earlier.final_text = "Maschinenpark"
+        other = self.env["res.partner.category"].create({"name": "Machines"})
+        second = self._watch(name="second", domain="[('id', '=', %d)]" % other.id)
+        second._scan()
+        unit = second.unit_ids
+        self.assertEqual(unit._memory(), {str(unit.id): "Maschinenpark"})
+        unit._process_group()
+        by_origin = {c.origin: c for c in unit.candidate_ids}
+        self.assertEqual(by_origin["memory"].text, "Maschinenpark")
+        self.assertEqual(unit.final_text, "Maschinen")                   # the reviewers preferred the new text
+        # nothing is offered for proofreading, and nothing from another language
+        self.assertEqual(self.env["ai.translation.unit"]._memory(), {})
+
+    def test_the_arbiter_is_only_used_when_it_can_be_trusted(self):
+        arbiter = self._provider("arbiter")
+        watch = self._watch(arbiter_id=arbiter.id)
+        self.assertEqual(watch._pick_arbiter().name, "arbiter")
+        arbiter.active = False
+        self.assertIsNone(watch._pick_arbiter())
+        arbiter.active = True
+        watch.confidential = True
+        self.assertIsNone(watch._pick_arbiter())              # not on our own infrastructure
+        self.assertIsNone(self._watch(name="no arbiter")._pick_arbiter())
+
+    def test_the_cross_checks_are_on_or_off_by_default_as_intended(self):
+        watch = self._watch()
+        self.assertTrue(watch.strict_checks)
+        self.assertFalse(watch.back_check)
+        self.assertFalse(watch.arbiter_id)
+        self.assertEqual((watch.auto_apply_max_chars, watch.audit_percent), (0, 0.0))
+
+    def test_glossary_entries_keep_the_difference_between_keep_and_translate(self):
+        glossary = self.env["ai.translation.glossary"]
+        glossary.create({"term": "Biricon"})
+        glossary.create({"term": "support", "translation": "Support"})
+        self.assertEqual(sorted(glossary._entries_for("de_DE", ["Biricon support", "x"])),
+                         [("Biricon", ""), ("support", "Support")])
+        self.assertEqual(glossary._entries_for("de_DE", ["nothing here"]), [])
+
+    def test_the_review_keeps_what_the_candidate_was_checked_with(self):
+        self._provider("one")
+        self._provider("two")
+        watch = self._watch(back_check=True)
+        watch._scan()
+        unit = watch.unit_ids
+        unit._process_group()
+        winner = unit.candidate_ids.filtered("is_winner")
+        self.assertEqual(winner.text, "Maschinen")
+        self.assertFalse(winner.back_translation)             # a short text is not translated back
 
     def test_requeue(self):
         self._provider("one")
@@ -589,6 +670,25 @@ class TestModels(TransactionCase):
         self.assertEqual(self._cron_calls(cron_end_time=started_long_ago), [(0, 3)])
         self.assertEqual(set(watch.unit_ids.mapped("state")), {"new"})
         self.assertFalse(unit_module._INFLIGHT)
+
+    def test_cron_scans_only_while_its_time_budget_lasts(self):
+        self._watch(auto_scan=True)
+        Watch = type(self.env["ai.translation.watch"])
+        scans = []
+        with patch.object(Watch, "_scan", lambda watch, full=False: scans.append(watch.id)), \
+                patch.object(type(self.env["ir.cron"]), "_commit_progress", lambda *a, **k: 0), \
+                patch.object(type(self.env["ai.translation.unit"]), "_cron_process", lambda unit: None):
+            watch_module._LAST_SCAN.clear()
+            self.addCleanup(watch_module._LAST_SCAN.clear)
+            self.env["ai.translation.watch"].with_context(
+                cron_end_time=time.monotonic() - 100 + MIN_TIME_PER_JOB)._cron_run()
+            self.assertFalse(scans)
+            self.env["ai.translation.watch"]._cron_run()
+            self.assertEqual(set(scans), set(self.env["ai.translation.watch"].search([("auto_scan", "=", True)]).ids))
+            self.assertTrue(scans)
+            scans.clear()
+            self.env["ai.translation.watch"]._cron_run()
+            self.assertFalse(scans, "the next call within five minutes does not scan again")
 
     def test_only_managers_switch_the_schedule(self):
         Watch = self.env["ai.translation.watch"]

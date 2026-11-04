@@ -112,6 +112,28 @@
         </field>
     </record>
 
+    <record id="view_ai_translation_watch_form_crosscheck" model="ir.ui.view">
+        <field name="name">ai.translation.watch.form.crosscheck</field>
+        <field name="model">ai.translation.watch</field>
+        <field name="inherit_id" ref="view_ai_translation_watch_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//page[@name='consensus']" position="inside">
+                <group string="Cross-checks">
+                    <group>
+                        <field name="strict_checks"/>
+                        <field name="back_check"/>
+                        <field name="min_back_similarity" invisible="not back_check"/>
+                        <field name="arbiter_id"/>
+                    </group>
+                    <group>
+                        <field name="auto_apply_max_chars" invisible="not auto_apply"/>
+                        <field name="audit_percent" invisible="not auto_apply"/>
+                    </group>
+                </group>
+            </xpath>
+        </field>
+    </record>
+
     <record id="action_ai_translation_watch" model="ir.actions.act_window">
         <field name="name">Rules</field>
         <field name="res_model">ai.translation.watch</field>

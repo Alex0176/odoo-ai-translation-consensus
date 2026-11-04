@@ -20,23 +20,34 @@ in the same vote.
 
 ```
  source text ──► every translator writes a version (in parallel)
-                    │
+                    │   (an earlier applied translation of the same text joins as one more candidate)
                     ├─ deterministic checks: HTML tags, entities, %s / {} placeholders,
-                    │  URLs, chatter. A version that breaks them can never win.
+                    │  URLs, chatter, the script of the target language, glossary names kept
+                    │  unchanged. A version that breaks them can never win.
                     ▼
               anonymised, shuffled candidates ──► every reviewer scores each one
-                    │          accuracy 1-10, naturalness 1-10, favourite, suggestion
+                    │          accuracy 1-10, naturalness 1-10, favourite, suggestion,
+                    │          and the kinds of error it found (mistranslation, omission ...)
                     │          (an author does not vote for its own text)
                     ▼
         rank = 0.5 × average score + 5 × share of favourite votes
                     │
-      share ≥ 0.6 and average ≥ 7.0 ?──► consensus
+      share ≥ 0.6 and average ≥ 7.0, and not half of the reviewers
+      reporting a serious error ?──► consensus
                     │ no
                     ▼
    second round with the top candidates + the reviewers' suggestions
                     │ still no
                     ▼
+   optional arbiter: one strong reviewer decides between the two best, only if it is
+   sure (8+ for both scores, no serious error) ──► consensus
+                    │ no
+                    ▼
                a human decides
+
+ Every consensus then passes the last gates (switchable per rule): a missing fixed glossary
+ translation or a changed number holds it back, and, if switched on, the text is translated
+ back by a provider that did not write it and compared with the source.
 ```
 
 * **Without reviewers** (only translation engines such as DeepL) a result counts as agreed
@@ -49,6 +60,44 @@ in the same vote.
 * Context: each request carries the neighbouring blocks and a slice of the page text
   (configurable) so that terms, tone and gender agree across the page.
 * A **glossary** pins brand and product names and fixed terms.
+
+## Cross-checks
+
+All of these are options on the rule (*Consensus* tab); none of them needs another provider
+except the arbiter.
+
+* **Serious errors** – reviewers name the kinds of error they find per candidate
+  (`mistranslation`, `omission`, `addition`, `untranslated`, `meaning-changed`, `terminology`,
+  `grammar`, `style`, ...). When half of the reviewers report one of the serious kinds for the
+  winning text, an agreement is not applied without a human, however well it scored. The kinds are
+  listed on the candidate.
+* **Script and language** – a text for Russian, Arabic, Greek, Chinese ... must be written in that
+  script, a text for a Latin-script language must be mostly Latin. Returning the source text
+  unchanged is caught here. Languages written in several scripts (Serbian, Kazakh, ...) and very
+  short texts are not judged.
+* **Numbers** – compared as values, so `1.000`, `1,000` and `١٬٠٠٠` are equal. A changed or invented
+  number, or a longer number that vanished, holds an agreement back; a single digit written out
+  (`0 Tage` → `zero-day`) does not. A proofread must keep every number.
+* **Glossary** – a name marked *keep unchanged* must appear unchanged in a Latin-script target (a
+  warning in other scripts, where it may be transliterated); a missing fixed translation holds an
+  agreement back.
+* **Earlier translations** – the latest applied translation of the very same source text into the
+  same language is offered as one more candidate, so identical texts keep identical wording across
+  the website. It never counts as a translator's own agreement.
+* **Arbiter** – optionally a strong provider (set per rule) that is asked only when the vote stays
+  split. It sees the two best candidates and settles the text only if it rates the choice 8 or better
+  and finds no serious error; it never judges a text it wrote itself.
+* **Back-translation** – optionally the agreed text is translated back into the source language by a
+  provider that did not write it. If the result has little in common with the source
+  (*Back-translation similarity needed*, default 0.3), the text goes to a human. The similarity is a
+  mix of word overlap and character similarity; the default is a first guess, so check a few
+  results on the candidate (it shows the back-translation and the value) before relying on it.
+  Costs one more request per group.
+* **Automatic application with brakes** – *Automatic only up to (characters)* keeps long texts for a
+  human, *Audit sample (%)* holds back a fixed share of the agreed texts so that the rate of
+  corrections tells you how far to trust the rule.
+* *Hold back agreed texts with serious errors* switches the gates above off for a rule that should
+  behave like the earlier versions.
 
 ## Providers
 
@@ -140,7 +189,7 @@ decision, queued or failed, per language and per provider, and refreshes itself 
   are queued they take turns. *Proposals processed per cron run* limits the texts per rule and cron
   interval; 0 means no limit, which is what you want when your API accounts have generous quotas.
   The calls to the providers run in background threads and keep going between cron calls; every
-  cron call lasts only about 15 seconds, hands out new groups, stores the finished ones and returns,
+  cron call lasts only about 8 seconds, hands out new groups, stores the finished ones and returns,
   so it never holds up the other cron jobs or trips the cron worker's time limit (which in Odoo also
   covers the pause between two passes). Groups still waiting when the Odoo worker is restarted are
   lost and simply queued again. Raise the number of parallel groups only as far as the rate limits of
@@ -187,7 +236,7 @@ odoo-bin -d <test-db> -i ai_translation_consensus,ai_translation_consensus_websi
 The suite covers the checks, the consensus maths, the pipeline with scripted providers,
 every HTTP adapter against a local mock server, the Odoo flow (scan, process, approve,
 stale sources, term and plain fields, proofreading, confidential rules), token and cost accounting,
-the cron with parallel groups, the dashboard figures and forecast, the completion message and the whole-website wizard.
+the cross-checks, the cron with parallel groups, the dashboard figures and forecast, the completion message and the whole-website wizard.
 
 ## Limits
 

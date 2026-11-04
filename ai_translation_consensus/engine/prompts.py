@@ -76,10 +76,26 @@ def generate_prompt(kind, src_name, tgt_name, items, glossary=(), instructions="
     return system, user
 
 
-REVIEW_JSON_HINT = (
-    '{"<id>": {"scores": {"<label>": {"accuracy": 1-10, "naturalness": 1-10, "issue": "<short or empty>"}, ...}, '
-    '"best": "<label>", "suggestion": "<better text or null>"}, ...}'
-)
+ERROR_KINDS = {
+    "translate": ("mistranslation", "omission", "addition", "untranslated", "terminology", "grammar", "style"),
+    "proofread": ("meaning-changed", "new-error", "missed-error", "style"),
+}
+ERROR_HELP = {
+    "translate": "mistranslation = wrong meaning, omission = something left out, addition = something "
+                 "added, untranslated = part left in the source language, terminology = wrong or "
+                 "inconsistent term, grammar = grammatical error, style = unnatural wording",
+    "proofread": "meaning-changed = the change alters the meaning, new-error = the change introduces an "
+                 "error, missed-error = an error is still there, style = unnatural wording",
+}
+
+
+def review_json_hint(kind):
+    return (
+        '{"<id>": {"scores": {"<label>": {"accuracy": 1-10, "naturalness": 1-10, '
+        '"errors": [%s], "issue": "<short or empty>"}, ...}, '
+        '"best": "<label>", "suggestion": "<better text or null>"}, ...}'
+        % ", ".join('"%s"' % k for k in ERROR_KINDS.get(kind, ERROR_KINDS["translate"])))
+
 
 
 def review_prompt(kind, src_name, tgt_name, items, glossary=(), instructions="", page_context="", round_no=1):
@@ -104,7 +120,9 @@ def review_prompt(kind, src_name, tgt_name, items, glossary=(), instructions="",
         )
     system += (
         "Name the single best candidate in \"best\". Only if none of the candidates is good "
-        "enough, give an improved text in \"suggestion\" (otherwise null). "
+        "enough, give an improved text in \"suggestion\" (otherwise null). In \"errors\" list "
+        "every kind of error you find in a candidate (empty list if there is none): %s. "
+        % ERROR_HELP.get(kind, ERROR_HELP["translate"])
     ) + _RULES_COMMON
     blocks = []
     for it in items:
@@ -114,7 +132,7 @@ def review_prompt(kind, src_name, tgt_name, items, glossary=(), instructions="",
                 label, (" (automatic warning: %s)" % "; ".join(warn)) if warn else "", text)
             for label, text, warn in it["cands"])
         blocks.append(head + "\n" + cands)
-    task = ("Review round %d. " % round_no) + "Answer format: " + REVIEW_JSON_HINT
+    task = ("Review round %d. " % round_no) + "Answer format: " + review_json_hint(kind)
     user = (_instr_block(instructions) + _glossary_block(glossary) + _page_block(page_context)
             + task + "\n\n" + "\n\n".join(blocks))
     return system, user
@@ -185,8 +203,21 @@ def _num(v):
         return None
 
 
+def _kinds(value):
+    """Kinds of error a reviewer named (lower case, hyphenated; unknown words are kept short)."""
+    if isinstance(value, str):
+        value = [value]
+    out = []
+    for kind in value if isinstance(value, (list, tuple)) else []:
+        kind = re.sub(r"[\s_]+", "-", str(kind).strip().lower())[:30]
+        if kind and kind not in out and kind not in ("none", "no", "null"):
+            out.append(kind)
+    return out
+
+
 def parse_review(raw, ids):
-    """Return {id: {"scores": {label: (acc, nat)}, "best": label, "issues": {...}, "suggestion": str|None}}."""
+    """Return {id: {"scores": {label: (acc, nat)}, "best": label, "issues": {...},
+    "flags": {label: [kinds of error]}, "suggestion": str|None}}."""
     data = extract_json(raw)
     for wrap in ("items", "results", "reviews"):
         if isinstance(data.get(wrap), dict):
@@ -196,7 +227,7 @@ def parse_review(raw, ids):
         v = data.get(str(i))
         if not isinstance(v, dict):
             continue
-        scores, issues = {}, {}
+        scores, issues, flags = {}, {}, {}
         for label, s in (v.get("scores") or {}).items():
             if not isinstance(s, dict):
                 continue
@@ -206,11 +237,14 @@ def parse_review(raw, ids):
             scores[str(label).strip().upper()] = (acc, nat)
             if s.get("issue"):
                 issues[str(label).strip().upper()] = str(s["issue"])[:300]
+            kinds = _kinds(s.get("errors"))
+            if kinds:
+                flags[str(label).strip().upper()] = kinds
         if not scores:
             continue
         best = str(v.get("best") or "").strip().upper()
         sug = v.get("suggestion")
         out[str(i)] = {"scores": scores, "best": best if best in scores else "",
-                       "issues": issues,
+                       "issues": issues, "flags": flags,
                        "suggestion": sug if isinstance(sug, str) and sug.strip() else None}
     return out
