@@ -2655,3 +2655,40 @@ msgstr ""
 #: model_terms:ir.ui.view,arch_db:ai_translation_consensus.view_ai_translation_provider_form
 msgid "{\"body\": {\"temperature\": 0.2}}"
 msgstr ""
+
+#. module: ai_translation_consensus
+#. odoo-python
+#: code:addons/ai_translation_consensus/models/ai_translation_watch.py:0
+msgid "The bulk request size cannot be negative."
+msgstr ""
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_watch__bulk_chars
+msgid "Bulk request (characters)"
+msgstr ""
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_unit__attempts
+msgid "Attempts"
+msgstr ""
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_unit__attempts
+msgid ""
+"How often the providers were asked again because this text got no "
+"usable proposal (bulk rules only)."
+msgstr ""
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_watch__bulk_chars
+msgid ""
+"0 = off: the texts of one record go to the providers in small groups "
+"of 'Texts per request', with the surrounding page text. Above 0 the "
+"texts of all records are put into one request per language until it "
+"holds about this many characters (20000 to 26000 works well, at most "
+"400 texts): fewer, larger requests, much faster for command line "
+"providers. The providers then see no page text, only a short label and"
+" the neighbouring texts. A text without a usable proposal is asked "
+"again later (twice at most), the rest of the request is kept. Set "
+"'Proposals processed per cron run' to 0 or a high number."
+msgstr ""

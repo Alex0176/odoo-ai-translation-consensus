@@ -112,6 +112,17 @@
         </field>
     </record>
 
+    <record id="view_ai_translation_watch_form_bulk" model="ir.ui.view">
+        <field name="name">ai.translation.watch.form.bulk</field>
+        <field name="model">ai.translation.watch</field>
+        <field name="inherit_id" ref="view_ai_translation_watch_form"/>
+        <field name="arch" type="xml">
+            <field name="batch_size" position="after">
+                <field name="bulk_chars"/>
+            </field>
+        </field>
+    </record>
+
     <record id="view_ai_translation_watch_form_crosscheck" model="ir.ui.view">
         <field name="name">ai.translation.watch.form.crosscheck</field>
         <field name="model">ai.translation.watch</field>

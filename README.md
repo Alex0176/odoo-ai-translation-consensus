@@ -194,6 +194,14 @@ decision, queued or failed, per language and per provider, and refreshes itself 
   covers the pause between two passes). Groups still waiting when the Odoo worker is restarted are
   lost and simply queued again. Raise the number of parallel groups only as far as the rate limits of
   your accounts allow.
+* **Bulk requests** (*Bulk request (characters)* on the rule, default 0 = off): instead of small
+  groups per record, the texts of all records are filled into one request per language until it
+  holds about that many characters (20000 to 26000 is a good size, at most 400 texts). Hundreds of
+  texts in one request are much faster than many small ones, especially with command line providers
+  (Claude Code, Codex), whose start-up time dominates a small request. The providers see a short
+  label and the neighbouring texts instead of the whole page. A text that comes back without a usable
+  proposal is asked again later (twice at most, bulk rules only) while the rest of the request is
+  kept; a bulk request may wait for its providers up to an hour and each provider call up to 15 minutes.
 * When the last open text of a rule is finished, a message **"All languages translated"**
   (proofreading: "All texts proofread") is posted once in the channel *AI Translation* by the bot.
   Members of the reviewer group are subscribed automatically; the message is posted again after

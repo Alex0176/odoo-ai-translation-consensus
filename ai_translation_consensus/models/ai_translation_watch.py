@@ -10,7 +10,7 @@ from odoo import _, api, fields, models
 from odoo.exceptions import UserError, ValidationError
 from odoo.tools.safe_eval import safe_eval
 
-from .ai_translation_unit import OPEN_STATES
+from .ai_translation_unit import BULK_MAX_ITEMS, BULK_TIMEOUT, OPEN_STATES
 
 SCAN_RESERVE_SECONDS = 5
 SCAN_EVERY_SECONDS = 300       # a scan takes seconds; the cron is called every minute while work is left
@@ -103,6 +103,16 @@ class AiTranslationWatch(models.Model):
              "to check instead (chosen by a fixed pattern, not at random). The rate of corrections "
              "tells how far to trust the rule.")
     batch_size = fields.Integer(default=10, help="Texts per request.")
+    bulk_chars = fields.Integer(
+        string="Bulk request (characters)", default=0,
+        help="0 = off: the texts of one record go to the providers in small groups of 'Texts per "
+             "request', with the surrounding page text. Above 0 the texts of all records are put "
+             "into one request per language until it holds about this many characters (20000 to "
+             "26000 works well, at most 400 texts): fewer, larger requests, much faster for command "
+             "line providers. The providers then see no page text, only a short label and the "
+             "neighbouring texts. A text without a usable proposal is asked again later (twice at "
+             "most), the rest of the request is kept. Set 'Proposals processed per cron run' to 0 "
+             "or a high number.")
     context_chars = fields.Integer(string="Page context (characters)", default=3000,
                                    help="How much of the surrounding page text each provider sees.")
     max_records = fields.Integer(string="Records per scan", default=500)
@@ -147,7 +157,7 @@ class AiTranslationWatch(models.Model):
             except Exception:  # noqa: BLE001
                 raise ValidationError(_("The domain is not valid."))
 
-    @api.constrains("threshold", "min_score", "max_rounds", "batch_size")
+    @api.constrains("threshold", "min_score", "max_rounds", "batch_size", "bulk_chars")
     def _check_numbers(self):
         for rec in self:
             if not 0 < rec.threshold <= 1:
@@ -156,6 +166,8 @@ class AiTranslationWatch(models.Model):
                 raise ValidationError(_("Minimum score must be between 1 and 10."))
             if rec.max_rounds < 1 or rec.batch_size < 1:
                 raise ValidationError(_("Rounds and batch size must be at least 1."))
+            if rec.bulk_chars < 0:
+                raise ValidationError(_("The bulk request size cannot be negative."))
 
     @api.onchange("model_id")
     def _onchange_model_id(self):
@@ -165,6 +177,15 @@ class AiTranslationWatch(models.Model):
     def _parallel_groups(self):
         self.ensure_one()
         return max(self.parallel_groups or 6, 1)
+
+    def _unit_order(self):
+        """Queue order: a bulk rule keeps the languages together and the texts of a record in line."""
+        return "lang, id" if self.bulk_chars else "id"
+
+    def _fetch_limit(self, parallel=False):
+        """How many queued texts to look at when picking the next groups."""
+        per_group = BULK_MAX_ITEMS if self.bulk_chars else (self.batch_size or 10) * 3
+        return per_group * (self._parallel_groups() if parallel else 1)
 
     def _pick_providers(self):
         """Return ``(translators, reviewers)`` as provider objects."""
@@ -177,6 +198,8 @@ class AiTranslationWatch(models.Model):
             impl = prov._impl()
             if impl.needs_key and not impl.key:
                 continue
+            if self.bulk_chars:
+                impl.timeout = max(impl.timeout, BULK_TIMEOUT)
             if prov.role in ("both", "translate") and impl.can_generate(self.kind):
                 translators.append(impl)
             if prov.role in ("both", "review") and impl.can_review:
@@ -265,7 +288,8 @@ class AiTranslationWatch(models.Model):
         """Process one batch now (several providers are called, this can take a minute)."""
         self.ensure_one()
         units = self.env["ai.translation.unit"].search(
-            [("watch_id", "=", self.id), ("state", "=", "new")], order="id", limit=self.batch_size * 3)
+            [("watch_id", "=", self.id), ("state", "=", "new")], order=self._unit_order(),
+            limit=self._fetch_limit())
         done = self.env["ai.translation.unit"]._process_next(units, limit=1)
         return {
             "type": "ir.actions.client", "tag": "display_notification",
@@ -497,5 +521,6 @@ class AiTranslationWatch(models.Model):
         if not self._pick_providers()[0]:
             raise UserError(_("No usable provider. Activate and test at least one under Providers."))
         units = self.env["ai.translation.unit"].search(
-            [("watch_id", "=", self.id), ("state", "=", "new")], order="id", limit=self.batch_size * 3)
+            [("watch_id", "=", self.id), ("state", "=", "new")], order=self._unit_order(),
+            limit=self._fetch_limit())
         return self.env["ai.translation.unit"]._process_next(units, limit=1)

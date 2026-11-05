@@ -5,7 +5,7 @@ import time
 from unittest.mock import patch
 
 from odoo.addons.base.models.ir_cron import MIN_TIME_PER_JOB
-from odoo.exceptions import UserError
+from odoo.exceptions import UserError, ValidationError
 from odoo.tests.common import TransactionCase, tagged
 
 from .. import providers
@@ -708,3 +708,102 @@ class TestModels(TransactionCase):
         wiz.step = "done"
         wiz.action_create()
         self.assertTrue(self.env["ai.translation.watch"].search([], order="id desc", limit=1).auto_scan)
+
+    # ------------------------------------------------------------ bulk rules
+    def test_bulk_groups_fill_up_to_the_character_limit_per_language(self):
+        watch = self._cron_setup(count=4, target_lang_ids=[(6, 0, (self.de | self.fr).ids)])
+        Unit = self.env["ai.translation.unit"]
+        units = watch.unit_ids.sorted(lambda u: (u.lang, u.id))
+        self.assertEqual(len(units), 8)
+        cost = len("Alpha") + unit_module.BULK_ITEM_OVERHEAD
+        groups = Unit._group_units(units, 1, bulk_chars=cost * 2 + 5)
+        self.assertEqual([len(g) for g in groups], [2, 2, 2, 2])
+        self.assertTrue(all(len(set(g.mapped("lang"))) == 1 for g in groups))
+        # without bulk_chars the old grouping stays: one group per record and language
+        self.assertEqual(len(Unit._group_units(units, 1)), 8)
+        # a text longer than the limit gets a request of its own
+        self.assertEqual([len(g) for g in Unit._group_units(units[:3], 1, bulk_chars=1)], [1, 1, 1])
+
+    def test_bulk_rule_sends_the_texts_of_all_records_in_one_request(self):
+        watch = self._cron_setup(count=4, bulk_chars=20000, parallel_groups=2)
+        calls = []
+        real = pipeline.process
+
+        def spy(kind, src, tgt, items, *args, **kwargs):
+            calls.append((items, kwargs["page_context"]))
+            return real(kind, src, tgt, items, *args, **kwargs)
+
+        with patch("odoo.addons.ai_translation_consensus.models.ai_translation_unit.pipeline.process", spy):
+            self.assertEqual(self._cron_calls(), [(4, 0)])
+        self.assertEqual(len(calls), 1)
+        items, page_context = calls[0]
+        self.assertEqual(sorted(i["text"] for i in items), ["Alpha", "Beta", "Delta", "Gamma"])
+        self.assertEqual(page_context, "")
+        self.assertTrue(all(i["label"] for i in items))
+        self.assertEqual(set(watch.unit_ids.mapped("state")), {"consensus"})
+        self.assertEqual(sorted(watch.unit_ids.mapped("final_text")),
+                         ["Alpha-de", "Beta-de", "Delta-de", "Gamma-de"])
+
+    def test_bulk_rule_keeps_the_good_results_when_one_record_changed(self):
+        watch = self._cron_setup(bulk_chars=20000)
+        alpha = self.env["res.partner.category"].search([("name", "=", "Alpha")])
+        alpha.name = "Alpha changed"
+        self.assertEqual(self._cron_calls(), [(3, 0)])
+        states = {u.source_text: u.state for u in watch.unit_ids}
+        self.assertEqual(states, {"Alpha": "stale", "Beta": "consensus", "Gamma": "consensus"})
+
+    def test_bulk_rule_asks_again_only_for_the_texts_without_proposal(self):
+        watch = self._cron_setup(bulk_chars=20000)
+        self.env["ai.translation.provider"].search([]).write({"extra_json": __import__("json").dumps(
+            dict(table={"Alpha": "Alpha-de", "Beta": "Beta-de"}, good=["Alpha-de", "Beta-de"]))})
+        requests = []
+        real = pipeline.process
+
+        def spy(kind, src, tgt, items, *args, **kwargs):
+            requests.append(sorted(i["text"] for i in items))
+            return real(kind, src, tgt, items, *args, **kwargs)
+
+        with patch("odoo.addons.ai_translation_consensus.models.ai_translation_unit.pipeline.process", spy):
+            self._cron_calls()
+            gamma = watch.unit_ids.filtered(lambda u: u.source_text == "Gamma")
+            self.assertEqual((gamma.state, gamma.attempts), ("new", 1))
+            self.assertEqual(set((watch.unit_ids - gamma).mapped("state")), {"consensus"})
+            self.assertEqual(len(unit_module._COOLDOWN), 1)       # not asked again at once
+            for expected_attempts in (2, 2):
+                unit_module._COOLDOWN.clear()
+                self._cron_calls()
+                self.assertEqual(gamma.attempts, expected_attempts)
+        self.assertEqual(requests, [["Alpha", "Beta", "Gamma"], ["Gamma"], ["Gamma"]])
+        self.assertEqual(gamma.state, "failed")                    # a human decides now
+
+    def test_a_rule_without_bulk_does_not_repeat_failures(self):
+        watch = self._cron_setup()
+        self.env["ai.translation.provider"].search([]).write({"extra_json": __import__("json").dumps(
+            dict(table={"Alpha": "Alpha-de"}, good=["Alpha-de"]))})
+        self._cron_calls()
+        self.assertEqual(sorted(watch.unit_ids.mapped("state")), ["consensus", "failed", "failed"])
+        self.assertEqual(set(watch.unit_ids.mapped("attempts")), {0})
+
+    def test_bulk_rule_gives_command_providers_time_for_big_requests(self):
+        self._provider("one")
+        watch = self._watch(bulk_chars=20000)
+        translators, _reviewers = watch._pick_providers()
+        self.assertTrue(translators)
+        self.assertTrue(all(p.timeout >= unit_module.BULK_TIMEOUT for p in translators))
+        watch.bulk_chars = 0
+        self.assertTrue(all(p.timeout < unit_module.BULK_TIMEOUT for p in watch._pick_providers()[0]))
+        with self.assertRaises(ValidationError):
+            watch.bulk_chars = -1
+
+    def test_bulk_group_may_wait_longer_than_a_small_one(self):
+        watch = self._cron_setup(bulk_chars=20000)
+        self._gate()
+        with patch.object(unit_module, "CRON_JOB_SECONDS", 0.3):
+            self._cron_calls()
+            self.assertEqual(len(unit_module._INFLIGHT), 1)
+            unit_module._INFLIGHT[0]["started"] -= unit_module.INFLIGHT_MAX_SECONDS + 1
+            self._cron_calls()
+            self.assertEqual(len(unit_module._INFLIGHT), 1, "still waiting, the bulk limit is longer")
+            unit_module._INFLIGHT[0]["started"] -= unit_module.BULK_INFLIGHT_SECONDS
+            self._cron_calls()
+        self.assertEqual(set(watch.unit_ids.mapped("state")), {"new"})

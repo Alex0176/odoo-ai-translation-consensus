@@ -30,6 +30,13 @@ MAX_THREADS = 24
 THREAD_STACK_BYTES = 1024 * 1024
 M_ARENA_MAX = -8
 CTX_CHARS = 240
+# Bulk rules (``bulk_chars`` > 0): many texts of many records go to the providers in one request.
+BULK_MAX_ITEMS = 400            # texts per request, whatever their length
+BULK_ITEM_OVERHEAD = 40         # characters one text adds to a request besides its own
+BULK_TIMEOUT = 900              # seconds one provider call may take (a request with hundreds of texts)
+BULK_INFLIGHT_SECONDS = 3600    # a bulk group may wait this long for all its calls and review rounds
+BULK_RETRIES = 2                # a text that got no usable proposal is repeated this often, alone
+BULK_RETRY_SECONDS = 60
 OPEN_STATES = ("new", "review", "consensus", "failed")
 
 
@@ -79,6 +86,9 @@ class AiTranslationUnit(models.Model):
     source_text = fields.Text(required=True)
     source_hash = fields.Char(required=True, index=True)
     result_hash = fields.Char(index=True)
+    attempts = fields.Integer(readonly=True, copy=False,
+                              help="How often the providers were asked again because this text got no "
+                                   "usable proposal (bulk rules only).")
     ctx_before = fields.Text()
     ctx_after = fields.Text()
     state = fields.Selection([
@@ -217,9 +227,30 @@ class AiTranslationUnit(models.Model):
 
     # ------------------------------------------------------------ processing
     @api.model
-    def _group_units(self, units, batch_size):
-        """Units of one record and language belong together (shared page context)."""
+    def _group_units(self, units, batch_size, bulk_chars=0):
+        """Units of one record and language belong together (shared page context).
+
+        With ``bulk_chars`` the units of one rule and language are filled into groups up to that
+        many characters (and ``BULK_MAX_ITEMS`` texts) regardless of the record, in the order
+        given, so that the neighbours of a text usually travel with it.
+        """
         buckets = {}
+        if bulk_chars:
+            for unit in units:
+                buckets.setdefault((unit.watch_id.id, unit.lang, unit.source_lang), []).append(unit)
+            groups = []
+            for bucket in buckets.values():
+                ids, size = [], 0
+                for unit in bucket:
+                    cost = len(unit.source_text) + BULK_ITEM_OVERHEAD
+                    if ids and (size + cost > bulk_chars or len(ids) >= BULK_MAX_ITEMS):
+                        groups.append(self.browse(ids))
+                        ids, size = [], 0
+                    ids.append(unit.id)
+                    size += cost
+                if ids:
+                    groups.append(self.browse(ids))
+            return groups
         for unit in units:
             buckets.setdefault((unit.watch_id.id, unit.lang, unit.model_name, unit.res_id), []).append(unit.id)
         groups = []
@@ -241,7 +272,8 @@ class AiTranslationUnit(models.Model):
     def _process_next(self, units, limit=1):
         """Process up to ``limit`` groups of the given queued units. Returns units handled."""
         done = 0
-        for group in self._group_units(units, units[:1].watch_id.batch_size or 10)[:limit]:
+        watch = units[:1].watch_id
+        for group in self._group_units(units, watch.batch_size or 10, watch.bulk_chars)[:limit]:
             done += group._process_group()
         return done
 
@@ -326,9 +358,8 @@ class AiTranslationUnit(models.Model):
             count = min(self.search_count(domain), quota) if quota else 0
             if count:
                 queued += count
-                width = watch._parallel_groups() * (watch.batch_size or 10) * 3
-                units = self.search(domain, order="id", limit=min(quota, width))
-                queues.append((watch, self._group_units(units, watch.batch_size)))
+                units = self.search(domain, order=watch._unit_order(), limit=min(quota, watch._fetch_limit(parallel=True)))
+                queues.append((watch, self._group_units(units, watch.batch_size, watch.bulk_chars)))
         if dry or not queues:
             return 0, 0, queued
         slots = max(w._parallel_groups() for w, _groups in queues) - len(mine)
@@ -360,6 +391,7 @@ class AiTranslationUnit(models.Model):
             "db": db, "future": future, "started": time.monotonic(), "name": job["name"],
             "unit_ids": set(job["units"].ids), "fresh_ids": job["fresh"].ids,
             "watch_id": job["watch"].id, "lang": job["lang"],
+            "max_seconds": BULK_INFLIGHT_SECONDS if job["watch"].bulk_chars else INFLIGHT_MAX_SECONDS,
             "translators": job["translators"], "reviewers": job["reviewers"],
         })
 
@@ -370,12 +402,12 @@ class AiTranslationUnit(models.Model):
         for ticket in [t for t in _INFLIGHT if t["db"] == db]:
             future = ticket["future"]
             if not future.done():
-                if time.monotonic() - ticket["started"] > INFLIGHT_MAX_SECONDS:
+                if time.monotonic() - ticket["started"] > ticket.get("max_seconds", INFLIGHT_MAX_SECONDS):
                     _INFLIGHT.remove(ticket)
                     self._cron_cool_down(db, ticket)
                     _logger.warning("AI translation rule %s: a group has waited for its providers for "
                                     "%s s and is given up, its units stay queued",
-                                    ticket["name"], INFLIGHT_MAX_SECONDS)
+                                    ticket["name"], ticket.get("max_seconds", INFLIGHT_MAX_SECONDS))
                 continue
             _INFLIGHT.remove(ticket)
             if future.cancelled() or future.exception() or future.result() is None:
@@ -451,12 +483,26 @@ class AiTranslationUnit(models.Model):
             return 0, None
         first = units[0]
         watch = first.watch_id
-        rec = self.env[first.model_name].sudo().browse(first.res_id).exists()
-        if not rec:
-            units.write({"state": "stale", "error": _("The record does not exist any more.")})
-            return len(units), None
-        fresh = units.filtered(lambda u: u._source_is_current(rec))
-        (units - fresh).write({"state": "stale", "error": _("The source text changed meanwhile.")})
+        bulk = watch.bulk_chars > 0
+        by_record = {}
+        for unit in units:
+            by_record.setdefault((unit.model_name, unit.res_id), []).append(unit.id)
+        fresh_ids, gone, changed = [], self.browse(), self.browse()
+        recs = {}
+        for (model, res_id), ids in by_record.items():
+            rec = self.env[model].sudo().browse(res_id).exists()
+            recs[(model, res_id)] = rec
+            group = self.browse(ids)
+            if not rec:
+                gone |= group
+                continue
+            current = group.filtered(lambda u: u._source_is_current(rec))
+            changed |= group - current
+            fresh_ids += current.ids
+        gone.write({"state": "stale", "error": _("The record does not exist any more.")})
+        changed.write({"state": "stale", "error": _("The source text changed meanwhile.")})
+        fresh_set = set(fresh_ids)
+        fresh = units.filtered(lambda u: u.id in fresh_set)
         if not fresh:
             return len(units), None
         fresh = fresh.with_context(ai_translation_defer_check=True)
@@ -465,12 +511,18 @@ class AiTranslationUnit(models.Model):
             _logger.warning("AI translation rule %s: no usable provider, %s units stay queued",
                             watch.name, len(fresh))
             return 0, None
-        items = [{"id": str(u.id), "text": u.source_text, "before": u.ctx_before or "",
-                  "after": u.ctx_after or ""} for u in fresh]
+        if bulk:
+            items = [{"id": str(u.id), "text": u.source_text, "before": "", "after": "",
+                      "label": ("%s - %s" % (u.record_name or u.model_name, u.field_label or u.field_name))[:80]}
+                     for u in fresh]
+        else:
+            items = [{"id": str(u.id), "text": u.source_text, "before": u.ctx_before or "",
+                      "after": u.ctx_after or ""} for u in fresh]
         texts = [i["text"] for i in items]
         prompt_src, prompt_tgt = watch._prompt_langs(first.source_lang, first.lang)
         glossary_model = self.env["ai.translation.glossary"]
         arbiter = watch._pick_arbiter()
+        page_context = "" if bulk else self._page_context(recs[(first.model_name, first.res_id)], watch, texts)
         return len(units) - len(fresh), {
             "group": self, "units": units, "fresh": fresh, "watch": watch, "lang": first.lang,
             "name": watch.name,
@@ -480,7 +532,7 @@ class AiTranslationUnit(models.Model):
             "kwargs": dict(
                 glossary=glossary_model._lines_for(first.lang, texts),
                 terms=glossary_model._entries_for(first.lang, texts),
-                instructions=watch.instructions or "", page_context=self._page_context(rec, watch, texts),
+                instructions=watch.instructions or "", page_context=page_context,
                 threshold=watch.threshold, min_score=watch.min_score, max_rounds=watch.max_rounds,
                 exclude_self=watch.exclude_self, review_unanimous=watch.review_unanimous,
                 strict=watch.strict_checks, memory=fresh._memory(), arbiter=arbiter,
@@ -522,6 +574,8 @@ class AiTranslationUnit(models.Model):
         for unit in fresh:
             unit._store_result(results[str(unit.id)], errors, watch)
         fresh.write({"processed_at": fields.Datetime.now(), "process_seconds": elapsed / len(fresh)})
+        if watch.bulk_chars:
+            fresh = fresh - fresh._retry_failed()
         self.env["ai.translation.usage"]._log(
             watch, job["translators"] + job["reviewers"] + job.get("extra", []), job["lang"], len(fresh))
         if watch.auto_apply:
@@ -530,6 +584,24 @@ class AiTranslationUnit(models.Model):
             (agreed - held)._apply_all(auto=True)
         watch._check_completion()
         return len(fresh)
+
+    def _retry_failed(self):
+        """Bulk rules: texts the providers left without any usable proposal (an answer that missed
+        them, a broken reply) go back to the queue, a limited number of times; the rest of the
+        request is kept. Returns the units queued again."""
+        again = self.filtered(lambda u: u.state == "failed" and u.attempts < BULK_RETRIES)
+        if not again:
+            return again
+        again.sudo().candidate_ids.unlink()
+        again.sudo().rating_ids.unlink()
+        for unit in again:
+            unit.write({"state": "new", "attempts": unit.attempts + 1, "final_text": False,
+                        "result_hash": False, "reason": False, "agreement": 0, "avg_score": 0,
+                        "rounds": 0})
+        until = time.monotonic() + BULK_RETRY_SECONDS
+        for unit in again:
+            _COOLDOWN[(self.env.cr.dbname, unit.id)] = until
+        return again
 
     def _hold_back(self, watch):
         """Keep an agreed text for a human although the rule applies automatically: too long for the
