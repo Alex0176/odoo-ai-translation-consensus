@@ -6,14 +6,20 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Odoo Server 19.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-03 18:54+0000\n"
-"PO-Revision-Date: 2026-11-03 18:54+0000\n"
+"POT-Creation-Date: 2026-11-06 07:11+0000\n"
+"PO-Revision-Date: 2026-11-06 07:11+0000\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: \n"
 "Plural-Forms: \n"
+
+#. module: ai_translation_consensus_website
+#. odoo-python
+#: code:addons/ai_translation_consensus_website/models/website_jsonld_term.py:0
+msgid "%(new)s new texts found, %(all)s in total."
+msgstr ""
 
 #. module: ai_translation_consensus_website
 #: model:ir.model.fields,help:ai_translation_consensus_website.field_ai_translation_wizard__scope
@@ -31,6 +37,16 @@ msgstr ""
 #. module: ai_translation_consensus_website
 #: model:ir.model,name:ai_translation_consensus_website.model_ai_translation_wizard
 msgid "AI translation: start wizard"
+msgstr ""
+
+#. module: ai_translation_consensus_website
+#: model:ir.model.fields,field_description:ai_translation_consensus_website.field_website_jsonld_term__active
+msgid "Active"
+msgstr ""
+
+#. module: ai_translation_consensus_website
+#: model_terms:ir.ui.view,arch_db:ai_translation_consensus_website.view_website_jsonld_term_search
+msgid "Archived"
 msgstr ""
 
 #. module: ai_translation_consensus_website
@@ -52,12 +68,31 @@ msgid "Choose the source language."
 msgstr ""
 
 #. module: ai_translation_consensus_website
+#: model_terms:ir.ui.view,arch_db:ai_translation_consensus_website.view_website_jsonld_term_list
+msgid "Collect texts of the pages"
+msgstr ""
+
+#. module: ai_translation_consensus_website
+#: model:ir.model.fields,field_description:ai_translation_consensus_website.field_website_jsonld_term__create_uid
+msgid "Created by"
+msgstr ""
+
+#. module: ai_translation_consensus_website
+#: model:ir.model.fields,field_description:ai_translation_consensus_website.field_website_jsonld_term__create_date
+msgid "Created on"
+msgstr ""
+
+#. module: ai_translation_consensus_website
 #: model:ir.model.fields,field_description:ai_translation_consensus_website.field_ai_translation_wizard__display_name
+#: model:ir.model.fields,field_description:ai_translation_consensus_website.field_ir_ui_view__display_name
+#: model:ir.model.fields,field_description:ai_translation_consensus_website.field_website_jsonld_term__display_name
 msgid "Display Name"
 msgstr ""
 
 #. module: ai_translation_consensus_website
 #: model:ir.model.fields,field_description:ai_translation_consensus_website.field_ai_translation_wizard__id
+#: model:ir.model.fields,field_description:ai_translation_consensus_website.field_ir_ui_view__id
+#: model:ir.model.fields,field_description:ai_translation_consensus_website.field_website_jsonld_term__id
 msgid "ID"
 msgstr ""
 
@@ -66,6 +101,16 @@ msgstr ""
 #: code:addons/ai_translation_consensus_website/models/ai_translation_wizard.py:0
 #: model:ir.model.fields,field_description:ai_translation_consensus_website.field_ai_translation_wizard__site_model_ids
 msgid "Kinds of content"
+msgstr ""
+
+#. module: ai_translation_consensus_website
+#: model:ir.model.fields,field_description:ai_translation_consensus_website.field_website_jsonld_term__write_uid
+msgid "Last Updated by"
+msgstr ""
+
+#. module: ai_translation_consensus_website
+#: model:ir.model.fields,field_description:ai_translation_consensus_website.field_website_jsonld_term__write_date
+msgid "Last Updated on"
 msgstr ""
 
 #. module: ai_translation_consensus_website
@@ -86,8 +131,51 @@ msgid "Scope"
 msgstr ""
 
 #. module: ai_translation_consensus_website
+#: model:ir.model.fields,field_description:ai_translation_consensus_website.field_website_jsonld_term__source
+msgid "Source"
+msgstr ""
+
+#. module: ai_translation_consensus_website
+#: model:ir.actions.act_window,name:ai_translation_consensus_website.action_website_jsonld_term
+#: model:ir.ui.menu,name:ai_translation_consensus_website.menu_website_jsonld_term
+msgid "Structured data texts"
+msgstr ""
+
+#. module: ai_translation_consensus_website
 #: model_terms:ir.ui.view,arch_db:ai_translation_consensus_website.view_ai_translation_wizard_form_website
 msgid "Suggest the content of the website"
+msgstr ""
+
+#. module: ai_translation_consensus_website
+#: model:ir.model,name:ai_translation_consensus_website.model_website_jsonld_term
+msgid "Text in structured data (JSON-LD)"
+msgstr ""
+
+#. module: ai_translation_consensus_website
+#: model:ir.model.fields,help:ai_translation_consensus_website.field_website_jsonld_term__translation
+msgid ""
+"The source language is kept in the English slot; empty translations show the"
+" source text."
+msgstr ""
+
+#. module: ai_translation_consensus_website
+#: model:ir.model.fields,help:ai_translation_consensus_website.field_website_jsonld_term__source
+msgid "The text exactly as it appears in the structured data."
+msgstr ""
+
+#. module: ai_translation_consensus_website
+#: model:ir.model.constraint,message:ai_translation_consensus_website.constraint_website_jsonld_term_source_unique
+msgid "This text already exists."
+msgstr ""
+
+#. module: ai_translation_consensus_website
+#: model:ir.model.fields,field_description:ai_translation_consensus_website.field_website_jsonld_term__translation
+msgid "Translation"
+msgstr ""
+
+#. module: ai_translation_consensus_website
+#: model:ir.model,name:ai_translation_consensus_website.model_ir_ui_view
+msgid "View"
 msgstr ""
 
 #. module: ai_translation_consensus_website

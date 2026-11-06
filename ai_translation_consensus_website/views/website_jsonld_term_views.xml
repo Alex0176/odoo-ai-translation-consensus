@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_website_jsonld_term_list" model="ir.ui.view">
+        <field name="name">website.jsonld.term.list</field>
+        <field name="model">website.jsonld.term</field>
+        <field name="arch" type="xml">
+            <list editable="bottom">
+                <header>
+                    <button name="action_collect" type="object" string="Collect texts of the pages" display="always"/>
+                </header>
+                <field name="source"/>
+                <field name="translation"/>
+                <field name="active" widget="boolean_toggle"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_website_jsonld_term_search" model="ir.ui.view">
+        <field name="name">website.jsonld.term.search</field>
+        <field name="model">website.jsonld.term</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="source"/>
+                <field name="translation"/>
+                <filter name="inactive" string="Archived" domain="[('active', '=', False)]"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_website_jsonld_term" model="ir.actions.act_window">
+        <field name="name">Structured data texts</field>
+        <field name="res_model">website.jsonld.term</field>
+        <field name="view_mode">list</field>
+    </record>
+
+    <menuitem id="menu_website_jsonld_term" name="Structured data texts"
+              parent="ai_translation_consensus.menu_ai_translation_root"
+              action="action_website_jsonld_term" sequence="45"
+              groups="ai_translation_consensus.group_ai_translation_manager"/>
+</odoo>

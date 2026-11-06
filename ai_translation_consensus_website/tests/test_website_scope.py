@@ -81,3 +81,41 @@ def safe_domain(watch):
         if isinstance(leaf, tuple) and leaf[0] == "website_id" and leaf[2]:
             return leaf[2]
     return False
+
+
+@tagged("standard", "post_install", "-at_install")
+class TestJsonldTerms(TransactionCase):
+    HTML = ('<html><body><script type="application/ld+json">'
+            '{"@type": "Service", "name": "IT-Betreuung", "url": "https://x.example/IT-Betreuung", '
+            '"knowsAbout": ["Firewall", "Gäste-WLAN"], "offers": {"description": "Rund um die Uhr"}}'
+            '</script><script type="application/ld+json">{broken</script></body></html>')
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.fr = cls.env.ref("base.lang_fr")
+        cls.fr.active = True
+        cls.Term = cls.env["website.jsonld.term"]
+        cls.Term.search([]).unlink()
+        for source, french in (("IT-Betreuung", "Assistance informatique"), ("Gäste-WLAN", "Wi-Fi invités")):
+            term = cls.Term.create({"source": source, "translation": source})
+            term.with_context(lang="fr_FR").translation = french
+
+    def test_texts_are_replaced_in_the_language_of_the_visitor(self):
+        html = self.Term._translate_html(self.HTML, "fr_FR")
+        self.assertIn('"name": "Assistance informatique"', html)
+        self.assertIn("Wi-Fi invités", html)
+        self.assertIn("Firewall", html)                                     # no term: stays
+        self.assertIn("Rund um die Uhr", html)
+        self.assertIn('"url": "https://x.example/IT-Betreuung"', html)      # URLs are never touched
+        self.assertIn("{broken", html)                                      # broken block is left alone
+
+    def test_language_without_translation_keeps_the_source(self):
+        self.assertEqual(self.Term._translate_html(self.HTML, "de_DE"), self.HTML)
+
+    def test_collect_finds_static_texts_of_views(self):
+        arch = ('<t t-name="x"><script type="application/ld+json">{"name": "Alarmanlagen", '
+                '"description": "Schutz <t t-out=\'x\'/>", "knowsAbout": ["Einbruchschutz"], '
+                '"url": "https://x.example"}</script></t>')
+        texts = self.Term._texts_in_arch(arch)
+        self.assertEqual(texts, {"Alarmanlagen", "Einbruchschutz"})

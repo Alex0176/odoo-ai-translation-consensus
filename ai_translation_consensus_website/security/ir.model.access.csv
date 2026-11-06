@@ -1,0 +1,3 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_jsonld_term_user,website.jsonld.term user,model_website_jsonld_term,ai_translation_consensus.group_ai_translation_user,1,0,0,0
+access_jsonld_term_manager,website.jsonld.term manager,model_website_jsonld_term,ai_translation_consensus.group_ai_translation_manager,1,1,1,1

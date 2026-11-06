@@ -5,7 +5,10 @@
 # Content models that carry no "published" flag.
 ALWAYS = ("website.menu", "ir.ui.view", "website.checkout.step", "product.public.category",
           "product.tag", "product.ribbon", "product.attribute", "product.attribute.value",
-          "blog.blog", "blog.tag", "forum.forum", "forum.tag", "slide.channel.tag")
+          "blog.blog", "blog.tag", "forum.forum", "forum.tag", "slide.channel.tag",
+          "website.jsonld.term",
+          # Mega menu and tab builders of common theme modules (only when installed).
+          "as.megamenu.category", "as.product.tab", "advance.megamenu")
 # Only offered when the website has a shop (a menu entry below /shop).
 SHOP = ("product.template", "product.public.category", "product.tag", "product.ribbon",
         "product.attribute", "product.attribute.value", "website.checkout.step")
