@@ -187,10 +187,13 @@ class AiTranslationWatch(models.Model):
         per_group = BULK_MAX_ITEMS if self.bulk_chars else (self.batch_size or 10) * 3
         return per_group * (self._parallel_groups() if parallel else 1)
 
-    def _pick_providers(self):
-        """Return ``(translators, reviewers)`` as provider objects."""
+    def _pick_providers(self, respect_pause=True):
+        """Return ``(translators, reviewers)`` as provider objects. Providers in a pause (quota,
+        limit or outage) are left out unless ``respect_pause`` is False."""
         self.ensure_one()
         pool = self.provider_ids.filtered("active") or self.env["ai.translation.provider"].search([])
+        if respect_pause:
+            pool = pool.filtered(lambda p: not p.is_paused)
         if self.confidential:
             pool = pool.filtered("is_local")
         translators, reviewers = [], []
@@ -206,11 +209,18 @@ class AiTranslationWatch(models.Model):
                 reviewers.append(impl)
         return translators, reviewers
 
+    def _paused_providers(self):
+        """Providers of this rule that are in a pause, for the dashboard."""
+        self.ensure_one()
+        pool = self.provider_ids.filtered("active") or self.env["ai.translation.provider"].search([])
+        return [{"name": p.name, "until": fields.Datetime.to_string(p.paused_until),
+                 "reason": p.pause_reason or ""} for p in pool.filtered("is_paused")]
+
     def _pick_arbiter(self):
         """The arbiter as provider object, or None when it is not set or not usable."""
         self.ensure_one()
         prov = self.arbiter_id
-        if not prov or not prov.active or (self.confidential and not prov.is_local):
+        if not prov or not prov.active or prov.is_paused or (self.confidential and not prov.is_local):
             return None
         impl = prov._impl()
         if (impl.needs_key and not impl.key) or not impl.can_review:
@@ -430,7 +440,7 @@ class AiTranslationWatch(models.Model):
             if not priced:
                 unpriced.append(name)
         unpriced = sorted(set(unpriced))
-        queued = counts["new"] + counts["failed"]
+        queued = counts["new"]          # failed texts wait for a person (or "Retry failed"), the cron skips them
         avg_seconds = Unit._read_group([("watch_id", "=", self.id), ("process_seconds", ">", 0)], [],
                                        ["process_seconds:avg"])[0][0] or 0.0
         remaining_seconds = queued * avg_seconds
@@ -458,6 +468,9 @@ class AiTranslationWatch(models.Model):
             "cost": cost, "cost_known": bool(cost) or (bool(providers) and not unpriced),
             "cost_text": currency.format(cost) if currency else "%.2f" % cost,
             "unpriced": unpriced, "queued": queued,
+            "paused": self._paused_providers(),
+            "retryable": Unit.search_count(
+                Unit._outage_failed_domain() + [("watch_id", "=", self.id)]) if counts["failed"] else 0,
             "forecast": {
                 "ready": bool(providers) and avg_seconds > 0,
                 "cost": remaining_cost,
@@ -510,6 +523,11 @@ class AiTranslationWatch(models.Model):
         if not self.env.user.has_group("ai_translation_consensus.group_ai_translation_manager"):
             raise UserError(_("Only managers can do this."))
 
+    def dashboard_retry_failed(self):
+        """Queue the failures of the rules that a provider outage caused. Returns how many."""
+        self._dashboard_check_manager()
+        return self.env["ai.translation.unit"]._retry_outage_failures([("watch_id", "in", self.ids)])
+
     def dashboard_scan(self):
         self._dashboard_check_manager()
         return sum(w._scan() for w in self)
@@ -519,7 +537,8 @@ class AiTranslationWatch(models.Model):
         self._dashboard_check_manager()
         self.ensure_one()
         if not self._pick_providers()[0]:
-            raise UserError(_("No usable provider. Activate and test at least one under Providers."))
+            raise UserError(_("No usable provider. Activate and test at least one under Providers "
+                              "(providers in a pause after a quota or outage are skipped until it ends)."))
         units = self.env["ai.translation.unit"].search(
             [("watch_id", "=", self.id), ("state", "=", "new")], order=self._unit_order(),
             limit=self._fetch_limit())

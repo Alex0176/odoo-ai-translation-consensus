@@ -56,6 +56,10 @@
                             <span class="ms-auto d-flex gap-2" t-if="state.data.can_manage">
                                 <button class="btn btn-sm btn-secondary" t-att-disabled="state.busy['scan' + rule.id]"
                                         t-on-click="() => this.scan(rule)">Search for texts</button>
+                                <button t-if="rule.retryable" class="btn btn-sm btn-secondary" t-att-disabled="state.busy['retry' + rule.id]"
+                                        t-on-click="() => this.retryFailed(rule)">
+                                    Retry <t t-esc="num(rule.retryable)"/> failed by outage
+                                </button>
                                 <button class="btn btn-sm btn-primary" t-att-disabled="state.busy['proc' + rule.id] or !rule.counts.new"
                                         t-on-click="() => this.process(rule)">
                                     <i t-if="state.busy['proc' + rule.id]" class="fa fa-spinner fa-spin me-1"/>
@@ -119,6 +123,11 @@
                                     <span t-if="rule.errors" class="text-danger small">(<t t-esc="num(rule.errors)"/> failed)</span>
                                 </div>
                             </div>
+                        </div>
+
+                        <div t-foreach="rule.paused || []" t-as="pause" t-key="pause.name" class="alert alert-warning py-2 small">
+                            <b t-esc="pause.name"/> is paused until <t t-esc="pause.until"/> UTC (quota, limit or outage);
+                            the texts wait in the queue. <span class="text-muted" t-esc="pause.reason"/>
                         </div>
 
                         <div t-if="rule.unpriced.length and rule.providers.length" class="alert alert-info py-2 small">

@@ -19,6 +19,19 @@ MAX_CANDIDATES_NEXT_ROUND = 3
 ARBITER_MIN_SCORE = 8.0          # accuracy and naturalness the arbiter must give the text it settles on
 
 
+class Outage(str):
+    """Error message of a provider that is out of service for now (quota, limit, outage).
+
+    ``wait`` is the number of seconds the provider asked us to stay away, or None.
+    """
+
+    wait = None
+
+
+def is_outage(message):
+    return isinstance(message, Outage)
+
+
 @dataclass
 class ItemResult:
     item_id: str
@@ -48,7 +61,12 @@ def _parallel(jobs, max_workers=8):
         try:
             return fn(), ""
         except Exception as exc:  # noqa: BLE001 - provider errors must never kill the batch
-            if type(exc).__name__ == "ProviderError":
+            names = {c.__name__ for c in type(exc).__mro__}
+            if "ProviderUnavailable" in names:
+                msg = Outage(str(exc)[:300])
+                msg.wait = getattr(exc, "wait", None)
+                return None, msg
+            if "ProviderError" in names:
                 return None, str(exc)[:300]
             return None, "%s: %s" % (type(exc).__name__, str(exc)[:300])
 
@@ -203,6 +221,7 @@ def process(kind, src, tgt, items, translators, reviewers, *, glossary=(), instr
                       key=lambda p: not p.can_review)         # language models first, they paraphrase better
         _back_check(results, src, tgt, by_id, pool, min_back_similarity, errors)
     results["__errors__"] = errors
+    results["__outages__"] = {name: err.wait for name, err in errors.items() if is_outage(err)}
     return results
 
 

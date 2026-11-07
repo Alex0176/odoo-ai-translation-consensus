@@ -12,7 +12,7 @@ from odoo.tests.common import BaseCase, tagged
 
 from .. import providers
 from ..providers import http
-from ..providers.http import ProviderError
+from ..providers.http import ProviderError, ProviderUnavailable
 
 REPLY = '{"1": {"text": "Hallo Welt", "note": ""}}'
 
@@ -41,6 +41,8 @@ class _Handler(BaseHTTPRequestHandler):
         path = unquote(url.path)
         if path.startswith("/fail401"):
             return self._send(401, {"error": "bad key secret-key-123"})
+        if path.startswith("/fail503"):
+            return self._send(503, {"error": "overloaded"})
         if path.startswith("/free402"):
             self.server.flaky -= 1
             if self.server.flaky >= 0:
@@ -73,7 +75,14 @@ class _Handler(BaseHTTPRequestHandler):
         if path.endswith("/translate"):                                   # libretranslate
             return self._send(200, {"translatedText": ["Hallo Welt" for _ in body["q"]]})
         if path.endswith("/get"):                                         # mymemory
-            if "quota" in self.server.requests[-1]["query"]["q"][0]:
+            asked = self.server.requests[-1]["query"]["q"][0]
+            if "nothing" in asked:
+                return self._send(200, {"responseStatus": 403, "responseData": {"translatedText": None}})
+            if "daily" in asked:
+                return self._send(429, {"responseStatus": 429, "responseData": {
+                    "translatedText": "MYMEMORY WARNING: YOU USED ALL AVAILABLE FREE TRANSLATIONS FOR TODAY. "
+                                      "NEXT AVAILABLE IN  10 HOURS 30 MINUTES 5 SECONDS"}})
+            if "quota" in asked:
                 return self._send(200, {"responseStatus": 429,
                                         "responseData": {"translatedText": "MYMEMORY WARNING: LIMIT"}})
             return self._send(200, {"responseStatus": 200, "responseData": {"translatedText": "Hallo Welt"}})
@@ -214,8 +223,35 @@ class TestProviders(BaseCase):
         self.assertEqual(self.last()["query"]["langpair"], ["en|de"])
         long = prov.generate("translate", "en_US", "de_DE", [{"id": "1", "text": "x" * 600}])
         self.assertEqual(long, {})
-        with self.assertRaises(ProviderError):
+        with self.assertRaises(ProviderUnavailable):
             prov.generate("translate", "en_US", "de_DE", [{"id": "1", "text": "quota please"}])
+
+    def test_mymemory_daily_quota_is_an_outage_that_says_when_it_ends(self):
+        prov = self.provider("mymemory", api_key="")
+        with self.assertRaises(ProviderUnavailable) as ctx:
+            prov.generate("translate", "en_US", "de_DE", [{"id": "1", "text": "daily"}])
+        self.assertEqual(ctx.exception.wait, 10 * 3600 + 30 * 60)
+        self.assertIn("MYMEMORY WARNING", str(ctx.exception))
+
+    def test_mymemory_answer_without_text_is_an_error_not_a_crash(self):
+        prov = self.provider("mymemory", api_key="")
+        with self.assertRaises(ProviderError) as ctx:
+            prov.generate("translate", "en_US", "de_DE", [{"id": "1", "text": "nothing"}])
+        self.assertNotIsInstance(ctx.exception, ProviderUnavailable)
+        self.assertIn("unexpected answer", str(ctx.exception))
+
+    def test_server_trouble_is_an_outage_but_a_bad_key_is_not(self):
+        with self.assertRaises(ProviderUnavailable):
+            self.translate(self.provider("openai", model="m", base_url=self.url + "/fail503"))
+        self.server.flaky = 10
+        with self.assertRaises(ProviderUnavailable):
+            self.translate(self.provider("openai", model="m", base_url=self.url + "/flaky"))
+        with self.assertRaises(ProviderError) as ctx:
+            self.translate(self.provider("openai", model="m", base_url=self.url + "/fail401"))
+        self.assertNotIsInstance(ctx.exception, ProviderUnavailable)
+        with patch.object(http.requests, "request", side_effect=http.requests.ConnectionError("down")):
+            with self.assertRaises(ProviderUnavailable):
+                self.translate(self.provider("openai", model="m"))
 
     def test_lingva(self):
         prov = self.provider("lingva", api_key="")
@@ -275,6 +311,52 @@ class TestProviders(BaseCase):
                                allow_command=True)
         with self.assertRaises(ProviderError):
             self.translate(broken)
+
+    def _failing_command(self, code, stdout="", stderr="", **cfg):
+        script = "import sys; sys.stdin.read(); sys.stdout.write(%r); sys.stderr.write(%r); sys.exit(%d)" % (
+            stdout, stderr, code)
+        cmd = shlex.join([sys.executable, "-c", script])
+        return self.provider("command", command=cmd, allow_command=True, api_key="", **cfg)
+
+    def test_local_command_failure_shows_the_reason_and_tells_outage_from_error(self):
+        # the limit message of the Claude CLI is on stdout, stderr stays empty
+        with self.assertRaises(ProviderUnavailable) as ctx:
+            self.translate(self._failing_command(1, stdout="Claude AI usage limit reached|1760000000"))
+        self.assertIn("usage limit reached", str(ctx.exception))
+        # the Codex CLI prints a long banner first and the reason last
+        banner = "OpenAI Codex v0.1\n--------\nworkdir: /x\n" + "model: m\n" * 60
+        with self.assertRaises(ProviderUnavailable) as ctx:
+            self.translate(self._failing_command(1, stderr=banner + "ERROR: You've hit your usage limit."))
+        self.assertIn("hit your usage limit", str(ctx.exception))
+        with self.assertRaises(ProviderUnavailable):                  # silence says nothing about the text
+            self.translate(self._failing_command(1))
+        with self.assertRaises(ProviderUnavailable):                  # killed: memory allocation, signal
+            self.translate(self._failing_command(1, stderr="memory allocation of 8 bytes failed"))
+        with self.assertRaises(ProviderUnavailable):
+            self.translate(self.provider("command", allow_command=True, api_key="", command=shlex.join(
+                [sys.executable, "-c", "import os, signal; os.kill(os.getpid(), signal.SIGABRT)"])))
+        with self.assertRaises(ProviderError) as ctx:                 # a real complaint stays an error
+            self.translate(self._failing_command(2, stderr=banner + "error: unknown option --foo"))
+        self.assertNotIsInstance(ctx.exception, ProviderUnavailable)
+        self.assertIn("unknown option --foo", str(ctx.exception))
+
+    def test_local_command_timeout_is_an_outage(self):
+        prov = self.provider("command", allow_command=True, api_key="", timeout=1, command=shlex.join(
+            [sys.executable, "-c", "import time; time.sleep(5)"]))
+        with self.assertRaises(ProviderUnavailable):
+            self.translate(prov)
+
+    def test_local_command_prompt_as_argument(self):
+        script = "import sys; assert sys.stdin.read() == ''; assert 'Hello' in sys.argv[1]; print(%r)" % REPLY
+        cmd = shlex.join([sys.executable, "-c", script, "{prompt}"])
+        prov = self.provider("command", command=cmd, allow_command=True, api_key="")
+        self.assertEqual(self.translate(prov)["1"]["text"], "Hallo Welt")
+
+    def test_local_command_prompt_embedded_in_argument(self):
+        script = "import sys; a = sys.argv[1]; assert a.startswith('No tools. ') and 'Hello' in a; print(%r)" % REPLY
+        cmd = shlex.join([sys.executable, "-c", script, "No tools. {prompt}"])
+        prov = self.provider("command", command=cmd, allow_command=True, api_key="")
+        self.assertEqual(self.translate(prov)["1"]["text"], "Hallo Welt")
 
     def test_every_registered_kind_can_be_built(self):
         for kind in providers.REGISTRY:

@@ -1,12 +1,14 @@
 # Copyright 2026 Biricon IT Services GmbH
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
 """Chat models: OpenAI-compatible APIs, Anthropic, Google Gemini, Cohere, local CLI."""
+import re
 import shlex
+import shutil
 import subprocess
 import tempfile
 
 from .base import ChatProvider
-from .http import ProviderError, call
+from .http import ProviderError, ProviderUnavailable, call
 
 
 class OpenAICompatible(ChatProvider):
@@ -141,12 +143,34 @@ class Cohere(ChatProvider):
             raise ProviderError("unexpected answer: %s" % str(data)[:150])
 
 
+# What a signed-in CLI prints when its subscription or the service is not available right now.
+_CLI_OUTAGE = re.compile(
+    r"usage limit|limit reached|hit your .*limit|rate.?limit|too many requests|quota|overloaded|"
+    r"over capacity|try again|credit balance|insufficient|resets? (?:at|in)|\b(?:429|500|502|503|504|529)\b|"
+    r"unavailable|temporar|connection|network|timed? ?out|stream (?:disconnected|error)|"
+    r"memory allocation|out of memory|cannot allocate|not logged in|please run /login|"
+    r"authentication|unauthorized|log ?in", re.I)
+
+
+def _cli_failure(returncode, stdout, stderr):
+    """The error for a CLI that exited non-zero. Banners come first, the reason comes last."""
+    text = " | ".join(part.strip()[-300:] for part in (stderr, stdout) if part and part.strip())
+    text = re.sub(r"\s+", " ", text)
+    message = "exit code %s: %s" % (returncode, text)
+    # A signal (negative code) or silence says nothing about the text; so do limits and outages.
+    if returncode < 0 or not text or _CLI_OUTAGE.search(text):
+        return ProviderUnavailable(message)
+    return ProviderError(message)
+
+
 class LocalCommand(ChatProvider):
     """Runs a command line tool that reads the prompt on stdin and prints the answer.
 
     This is the "no key, but approved" route: a CLI that is already signed in
     on the server (Claude Code, Ollama, ...). The arguments are split without a
-    shell. Because it executes a program, it only works when the system
+    shell. A tool that takes the prompt as an argument instead (Antigravity ``agy -p``)
+    gets it in place of ``{prompt}`` inside an argument (it may carry a fixed lead-in text); stdin stays empty then.
+    Because it executes a program, it only works when the system
     parameter ``ai_translation_consensus.allow_command`` is ``True``.
     """
 
@@ -163,15 +187,25 @@ class LocalCommand(ChatProvider):
         cmd = shlex.split(self.cfg.get("command") or "")
         if not cmd:
             raise ProviderError("no command configured")
+        if not shutil.which(cmd[0]):
+            raise ProviderError("command not found: %s" % cmd[0])
         prompt = system + "\n\n" + user
+        as_argument = any("{prompt}" in arg for arg in cmd)
+        if as_argument:
+            cmd = [arg.replace("{prompt}", prompt) for arg in cmd]
+        # Odoo workers cap the address space (limit_memory_hard); Go based tools such as agy
+        # reserve far more virtual memory and die with "out of memory", so lift the soft limit.
+        cmd = ["sh", "-c", 'ulimit -S -v "$(ulimit -H -v)" 2>/dev/null; exec "$@"', "sh"] + cmd
         try:
             with tempfile.TemporaryDirectory() as cwd:
-                proc = subprocess.run(cmd, input=prompt, capture_output=True, text=True,
+                proc = subprocess.run(cmd, input=None if as_argument else prompt,
+                                      stdin=subprocess.DEVNULL if as_argument else None,
+                                      capture_output=True, text=True,
                                       timeout=self.timeout, cwd=cwd, check=False)
         except FileNotFoundError:
             raise ProviderError("command not found: %s" % cmd[0])
         except subprocess.TimeoutExpired:
-            raise ProviderError("command timed out after %s s" % self.timeout)
+            raise ProviderUnavailable("command timed out after %s s" % self.timeout)
         if proc.returncode != 0:
-            raise ProviderError("exit code %s: %s" % (proc.returncode, (proc.stderr or "")[:200]))
+            raise _cli_failure(proc.returncode, proc.stdout, proc.stderr)
         return proc.stdout

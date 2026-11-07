@@ -108,13 +108,29 @@ except the arbiter.
 | Anthropic | yes | yes | Claude |
 | Google Gemini | yes | yes | |
 | Cohere | yes | yes | |
-| Local command | yes | yes | `claude -p`, any CLI that reads stdin and prints the answer |
+| Local command | yes | yes | `claude -p`, `codex exec`, Antigravity `agy -p` (preset, prompt passed as argument), any CLI that reads stdin and prints the answer |
 | DeepL, Google Translate, Azure Translator | yes | no | |
 | LibreTranslate, MyMemory, Lingva | yes | no | |
 
 Presets for all of these are installed **inactive**. Enter a key (or the name of an
 environment variable that holds it), press *Test connection*, activate. Model names in the
 presets are starting points; check them against the vendor's current list.
+
+### Quota, limits and outages
+
+A provider that cannot answer right now (daily quota used up, usage limit of a signed-in CLI,
+HTTP 402/429/5xx, no connection, a CLI killed by a signal or out of memory) does **not** make the
+texts fail. The unit stays queued, the provider is **paused** (*Paused until* on the provider) and the
+other providers carry on. The pause starts at 5 minutes and doubles with every outage in a row (at most
+6 hours; a wait the service asks for, such as MyMemory's "next available in ...", is honoured up to 24
+hours). A successful answer or *Test connection* ends it, as does *Use again now*. Other errors (bad
+answers, a rejected key) pause the provider only after three in a row. Only texts for which a
+provider answered but no usable proposal came out are marked *failed*; the dashboard counts them
+separately from the queue and shows the pauses.
+
+Texts that failed because of an outage in an earlier version (no candidates, error text of an outage)
+can be queued again with the dashboard button *Retry N failed by outage* or the list action
+*Retry failures caused by a provider outage*. Failures with candidates are content failures and stay.
 
 What has been verified:
 

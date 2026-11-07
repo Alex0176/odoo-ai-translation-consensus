@@ -2,11 +2,17 @@
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
 import json
 import os
+from datetime import timedelta
 
 from odoo import _, api, fields, models
 from odoo.exceptions import ValidationError
 
 from .. import providers
+
+PAUSE_BASE_SECONDS = 300          # first pause after an outage; doubles with every failed probe
+PAUSE_MAX_SECONDS = 6 * 3600
+PAUSE_ASKED_MAX_SECONDS = 24 * 3600   # a provider that says when it is back (daily quota)
+ERROR_STREAK_LIMIT = 3            # other errors pause the provider after this many in a row
 
 
 class AiTranslationProvider(models.Model):
@@ -47,6 +53,14 @@ class AiTranslationProvider(models.Model):
     last_message = fields.Char(readonly=True, copy=False)
     last_check = fields.Datetime(readonly=True, copy=False)
     note = fields.Text()
+    paused_until = fields.Datetime(readonly=True, copy=False,
+                                   help="The provider is left alone until then: quota used up, limit "
+                                        "reached or outage. It is tried again afterwards.")
+    pause_reason = fields.Char(readonly=True, copy=False)
+    pause_level = fields.Integer(readonly=True, copy=False,
+                                 help="Number of pauses in a row; every one lasts twice as long.")
+    error_streak = fields.Integer(readonly=True, copy=False)
+    is_paused = fields.Boolean(compute="_compute_is_paused")
     price_input = fields.Float(string="Price per million input tokens", digits=(16, 4),
                                help="In the company currency. Language models bill by tokens; "
                                     "enter the vendor's current price. Leave 0 for a free service.")
@@ -55,6 +69,12 @@ class AiTranslationProvider(models.Model):
                                help="Translation engines such as DeepL bill by characters.")
 
     _name_uniq = models.Constraint("UNIQUE(name)", "The provider name must be unique.")
+
+    @api.depends("paused_until")
+    def _compute_is_paused(self):
+        now = fields.Datetime.now()
+        for rec in self:
+            rec.is_paused = bool(rec.paused_until and rec.paused_until > now)
 
     @api.depends("kind")
     def _compute_kind_flags(self):
@@ -115,6 +135,37 @@ class AiTranslationProvider(models.Model):
         impl.weight = self.weight
         return impl
 
+    def _note_outcome(self, errors, outages):
+        """Learn from one finished group. ``errors`` {provider name: message}, ``outages``
+        {provider name: seconds it asked us to wait or None}. A provider without an error works
+        again; an outage pauses it with growing pauses, other errors only when they repeat."""
+        now = fields.Datetime.now()
+        for prov in self.sudo():
+            if prov.name not in errors:
+                if prov.paused_until or prov.pause_level or prov.error_streak:
+                    prov.write({"paused_until": False, "pause_reason": False, "pause_level": 0,
+                                "error_streak": 0})
+                continue
+            if prov.paused_until and prov.paused_until > now:
+                continue                # another group of this run already paused it
+            streak = prov.error_streak + 1
+            outage = prov.name in outages
+            if not outage and streak < ERROR_STREAK_LIMIT:
+                prov.write({"error_streak": streak})
+                continue
+            seconds = min(PAUSE_BASE_SECONDS * 2 ** prov.pause_level, PAUSE_MAX_SECONDS)
+            asked = outages.get(prov.name) if outage else None
+            if asked:
+                seconds = min(max(asked, PAUSE_BASE_SECONDS), PAUSE_ASKED_MAX_SECONDS)
+            prov.write({"paused_until": now + timedelta(seconds=seconds),
+                        "pause_reason": str(errors[prov.name])[:250],
+                        "pause_level": prov.pause_level + 1, "error_streak": 0})
+
+    def action_resume(self):
+        """Use the provider again right away instead of waiting for the pause to end."""
+        self.sudo().write({"paused_until": False, "pause_reason": False, "pause_level": 0,
+                           "error_streak": 0})
+
     def action_test(self):
         self.ensure_one()
         try:
@@ -127,6 +178,8 @@ class AiTranslationProvider(models.Model):
             "last_status": "ok" if ok else "error", "last_message": message[:250],
             "last_check": fields.Datetime.now(),
         })
+        if ok:
+            self.action_resume()
         return {
             "type": "ir.actions.client", "tag": "display_notification",
             "params": {

@@ -87,7 +87,7 @@ class AiTranslationWizard(models.TransientModel):
         })
 
     def _providers(self):
-        translators, reviewers = self._preview_watch()._pick_providers()
+        translators, reviewers = self._preview_watch()._pick_providers(respect_pause=False)
         return translators, reviewers
 
     @api.depends("provider_ids", "confidential", "kind", "step")

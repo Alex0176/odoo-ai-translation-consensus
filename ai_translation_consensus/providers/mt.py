@@ -2,11 +2,12 @@
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
 """Machine translation engines (translate only, no review)."""
 import html as htmllib
+import re
 import urllib.parse
 
 from ..engine.languages import base_code, iso_code
 from .base import MTProvider
-from .http import ProviderError, call
+from .http import ProviderError, ProviderUnavailable, call
 
 _NEEDS_HTML = ("<", "&")
 
@@ -120,6 +121,15 @@ class LibreTranslate(MTProvider):
         return out
 
 
+def _quota_wait(message):
+    """Seconds until the free quota is back, from 'NEXT AVAILABLE IN 10 HOURS 30 MINUTES ...'."""
+    match = re.search(r"NEXT AVAILABLE IN\s+(?:(\d+)\s+HOURS?)?\s*(?:(\d+)\s+MINUTES?)?",
+                      str(message or ""), re.I)
+    if not match or not (match.group(1) or match.group(2)):
+        return None
+    return int(match.group(1) or 0) * 3600 + int(match.group(2) or 0) * 60
+
+
 class MyMemory(MTProvider):
     kind = "mymemory"
     label = "MyMemory (free, no key, small daily quota)"
@@ -139,13 +149,27 @@ class MyMemory(MTProvider):
                 params["de"] = self.extra["email"]
             if self.key:
                 params["key"] = self.key
-            data = call("GET", base + "/get", params=params, timeout=self.timeout, secrets=[self.key])
+            try:
+                data = call("GET", base + "/get", params=params, timeout=self.timeout, secrets=[self.key])
+            except ProviderUnavailable as exc:
+                if exc.wait is None:
+                    exc.wait = _quota_wait(exc)
+                raise
             try:
                 translated = data["responseData"]["translatedText"]
-            except (KeyError, TypeError):
+                status = data.get("responseStatus")
+            except (KeyError, TypeError, AttributeError):
                 raise ProviderError("unexpected answer: %s" % str(data)[:150])
-            if "MYMEMORY WARNING" in translated.upper() or data.get("responseStatus") not in (200, "200"):
-                raise ProviderError("quota or error: %s" % translated[:120])
+            quota = status in (429, "429")
+            if isinstance(translated, str):
+                quota = quota or "MYMEMORY WARNING" in translated.upper()
+            if quota:
+                raise ProviderUnavailable("quota used up: %s" % str(translated)[:120],
+                                          _quota_wait(translated))
+            if not isinstance(translated, str):
+                raise ProviderError("unexpected answer: %s" % str(data)[:150])
+            if status not in (200, "200"):
+                raise ProviderError("error %s: %s" % (status, translated[:120]))
             out.append(htmllib.unescape(translated))
         return out
 

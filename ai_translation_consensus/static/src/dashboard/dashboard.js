@@ -145,6 +145,12 @@ export class AiTranslationDashboard extends Component {
         );
     }
 
+    retryFailed(rule) {
+        return this.run(`retry${rule.id}`, "dashboard_retry_failed", [[rule.id]], (n) =>
+            _t("%s failed texts queued again.", n)
+        );
+    }
+
     toggleCron() {
         return this.run("cron", "dashboard_toggle_cron", [], (active) =>
             active ? _t("Scheduled processing is on.") : _t("Scheduled processing is off.")

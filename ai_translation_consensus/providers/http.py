@@ -10,6 +10,19 @@ class ProviderError(Exception):
     """A provider failed; the message is safe to store and show (no secrets)."""
 
 
+class ProviderUnavailable(ProviderError):
+    """The provider cannot serve requests for now (quota, rate limit, outage, network).
+
+    This says nothing about the text, so the caller keeps the work queued and pauses the provider.
+    ``wait`` is the number of seconds the provider asked us to stay away, if it said so.
+    """
+
+    def __init__(self, message, wait=None):
+        super().__init__(message)
+        self.wait = wait
+
+
+TEMPORARY_STATUS = (402, 429, 500, 502, 503, 504, 529)
 _sleep = time.sleep   # replaced in tests
 _clock = time.monotonic
 _last_call = {}
@@ -55,19 +68,22 @@ def call(method, url, *, headers=None, json_body=None, params=None, timeout=120,
             resp = requests.request(method, url, headers=headers, json=json_body,
                                     params=params, timeout=timeout)
         except requests.RequestException as exc:
-            last = ProviderError("%s: %s" % (type(exc).__name__, _clean(str(exc), secrets, 150)))
+            last = ProviderUnavailable("%s: %s" % (type(exc).__name__, _clean(str(exc), secrets, 150)))
             if attempt < retries:
                 _sleep(1 + 2 * attempt)
             continue
         wait = _retry_after(resp)
-        retryable = resp.status_code in (429, 500, 502, 503, 504) or (
+        retryable = resp.status_code in (429, 500, 502, 503, 504, 529) or (
             resp.status_code == 402 and wait is not None)
         if retryable and attempt < retries:
-            last = ProviderError("HTTP %s" % resp.status_code)
+            last = ProviderUnavailable("HTTP %s" % resp.status_code, wait)
             _sleep(wait if wait is not None else 1 + 3 * attempt)
             continue
         if resp.status_code >= 400:
-            raise ProviderError("HTTP %s: %s" % (resp.status_code, _clean(resp.text, secrets)))
+            message = "HTTP %s: %s" % (resp.status_code, _clean(resp.text, secrets))
+            if resp.status_code in TEMPORARY_STATUS:
+                raise ProviderUnavailable(message, wait)
+            raise ProviderError(message)
         try:
             return resp.json()
         except ValueError:

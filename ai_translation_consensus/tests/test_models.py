@@ -2,8 +2,10 @@
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
 import threading
 import time
+from datetime import timedelta
 from unittest.mock import patch
 
+from odoo import fields
 from odoo.addons.base.models.ir_cron import MIN_TIME_PER_JOB
 from odoo.exceptions import UserError, ValidationError
 from odoo.tests.common import TransactionCase, tagged
@@ -13,7 +15,7 @@ from ..engine import pipeline
 from ..models import ai_translation_unit as unit_module
 from ..models import ai_translation_watch as watch_module
 from ..providers.base import ChatProvider
-from ..providers.http import ProviderError
+from ..providers.http import ProviderError, ProviderUnavailable
 
 
 class ScriptedChat(ChatProvider):
@@ -28,6 +30,8 @@ class ScriptedChat(ChatProvider):
     def generate(self, kind, src, tgt, items, glossary=(), instructions="", page_context=""):
         if self.extra.get("fail"):
             raise ProviderError("down")
+        if self.extra.get("outage"):
+            raise ProviderUnavailable("usage limit reached", self.extra.get("wait"))
         if self.extra.get("barrier"):
             # only passes when that many groups reach the provider at the same moment
             ScriptedChat.barrier.wait(timeout=5)
@@ -121,6 +125,120 @@ class TestModels(TransactionCase):
         watch.unit_ids._process_group()
         self.assertEqual(watch.unit_ids.state, "failed")
         self.assertIn("down", watch.unit_ids.error)
+
+    def _outage_setup(self, kind="translate", **flags):
+        self.table = {"Machines": "Maschinen"}
+        prov = self._provider("one", **flags)
+        watch = self._watch(kind=kind) if kind != "translate" else self._watch()
+        watch._scan()
+        return prov, watch
+
+    def test_an_outage_keeps_the_unit_queued_and_pauses_the_provider(self):
+        prov, watch = self._outage_setup(outage=True)
+        unit = watch.unit_ids
+        self.assertEqual(unit._process_group(), 0)
+        self.assertEqual((unit.state, unit.attempts), ("new", 0))
+        self.assertIn("usage limit reached", unit.error)
+        self.assertTrue(prov.is_paused)
+        self.assertEqual(prov.pause_level, 1)
+        self.assertIn("usage limit", prov.pause_reason)
+        self.assertEqual(watch._stats()["counts"]["failed"], 0)
+        self.assertEqual(watch._stats()["queued"], 1)
+        self.assertEqual([p["name"] for p in watch._stats()["paused"]], ["one"])
+        self.assertEqual(watch._pick_providers(), ([], []))               # left alone during the pause
+        self.assertTrue(watch._pick_providers(respect_pause=False)[0])
+        self.assertIn((self.env.cr.dbname, unit.id), unit_module._COOLDOWN)
+
+    def test_an_outage_of_one_provider_does_not_stop_the_others(self):
+        broken, watch = self._outage_setup(outage=True)
+        self._provider("two")
+        self._provider("three")
+        watch.unit_ids._process_group()
+        self.assertEqual(watch.unit_ids.state, "consensus")
+        self.assertTrue(broken.is_paused)
+        self.assertEqual(len(watch._pick_providers()[0]), 2)
+
+    def test_the_pause_grows_and_a_working_answer_ends_it(self):
+        prov, watch = self._outage_setup(outage=True)
+        for level, seconds in enumerate((300, 600, 1200), start=1):
+            prov._note_outcome({"one": pipeline.Outage("limit")}, {"one": None})
+            self.assertEqual(prov.pause_level, level)
+            self.assertAlmostEqual((prov.paused_until - fields.Datetime.now()).total_seconds(), seconds, delta=5)
+            prov._note_outcome({"one": pipeline.Outage("limit")}, {"one": None})     # still paused: no new level
+            self.assertEqual(prov.pause_level, level)
+            prov.paused_until = fields.Datetime.now() - timedelta(seconds=1)         # the pause ran out
+        prov._note_outcome({}, {})
+        self.assertEqual((prov.pause_level, prov.paused_until, prov.error_streak), (0, False, 0))
+
+    def test_a_provider_that_names_the_wait_is_paused_that_long_but_not_longer_than_a_day(self):
+        prov, _watch = self._outage_setup(outage=True)
+        prov._note_outcome({"one": pipeline.Outage("quota")}, {"one": 36000})
+        self.assertAlmostEqual((prov.paused_until - fields.Datetime.now()).total_seconds(), 36000, delta=5)
+        prov.action_resume()
+        prov._note_outcome({"one": pipeline.Outage("quota")}, {"one": 10 ** 7})
+        self.assertAlmostEqual((prov.paused_until - fields.Datetime.now()).total_seconds(), 86400, delta=5)
+
+    def test_other_errors_pause_the_provider_only_when_they_repeat(self):
+        prov, _watch = self._outage_setup(fail=True)
+        for streak in (1, 2):
+            prov._note_outcome({"one": "down"}, {})
+            self.assertEqual((prov.error_streak, prov.is_paused), (streak, False))
+        prov._note_outcome({}, {})                                                    # one success: start over
+        self.assertEqual(prov.error_streak, 0)
+        for _i in range(3):
+            prov._note_outcome({"one": "down"}, {})
+        self.assertTrue(prov.is_paused)
+
+    def test_a_working_test_ends_the_pause(self):
+        prov, _watch = self._outage_setup()
+        prov._note_outcome({"one": pipeline.Outage("limit")}, {"one": None})
+        self.assertTrue(prov.is_paused)
+        with patch.object(ScriptedChat, "ping", lambda self: "Guten Tag", create=True):
+            prov.action_test()
+        self.assertFalse(prov.is_paused)
+
+    def test_an_outage_never_closes_a_proofread_unit_as_unchanged(self):
+        prov, watch = self._outage_setup(kind="proofread", outage=True)
+        unit = watch.unit_ids
+        unit._process_group()
+        self.assertEqual(unit.state, "new")
+        self.assertFalse(unit.candidate_ids)
+
+    def test_a_failing_provider_without_outage_still_fails_the_unit(self):
+        prov, watch = self._outage_setup(fail=True)
+        watch.unit_ids._process_group()
+        self.assertEqual(watch.unit_ids.state, "failed")
+        self.assertFalse(prov.is_paused)
+
+    def test_failures_of_an_outage_can_be_queued_again_but_no_others(self):
+        _prov, watch = self._outage_setup(fail=True)
+        Unit = self.env["ai.translation.unit"]
+
+        def failed(error, with_candidate=False):
+            unit = Unit.create({
+                "watch_id": watch.id, "model_name": "res.partner.category", "res_id": self.partner_cat.id,
+                "field_name": "name", "lang": "fr_FR", "source_lang": "en_US",
+                "source_text": error, "source_hash": pipeline.group_key(error), "kind": "translate",
+                "state": "failed", "error": error})
+            if with_candidate:
+                self.env["ai.translation.candidate"].create({
+                    "unit_id": unit.id, "key": "k", "text": "x", "authors": "a", "origin": "translation"})
+            return unit
+
+        outage = failed("Claude Code CLI (signed-in): exit code 1: ; Codex: exit code 1: banner")
+        quota = failed("MyMemory (keyless): HTTP 429: MYMEMORY WARNING: YOU USED ALL")
+        bug = failed("MyMemory (keyless): AttributeError: 'NoneType' object has no attribute 'upper'")
+        content = failed("no valid candidate")
+        rated = failed("Codex: exit code 1: x", with_candidate=True)
+        self.assertEqual(watch._stats()["retryable"], 3)
+        self.assertEqual(watch.dashboard_retry_failed(), 3)
+        self.assertEqual((outage | quota | bug).mapped("state"), ["new"] * 3)
+        self.assertEqual(content.state, "failed")
+        self.assertEqual(rated.state, "failed")
+        self.assertFalse(outage.error)
+        self.assertEqual(watch.dashboard_retry_failed(), 0)
+        self.assertEqual(content.action_retry_outage_failures()["params"]["type"], "warning")
+        self.assertEqual(content.state, "failed")
 
     def test_no_provider_keeps_units_queued(self):
         watch = self._watch()

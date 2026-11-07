@@ -38,6 +38,10 @@ BULK_INFLIGHT_SECONDS = 3600    # a bulk group may wait this long for all its ca
 BULK_RETRIES = 2                # a text that got no usable proposal is repeated this often, alone
 BULK_RETRY_SECONDS = 60
 OPEN_STATES = ("new", "review", "consensus", "failed")
+# Pieces of an error text that mean "the provider was not available", not "the text is bad".
+OUTAGE_ERROR_MARKERS = ("exit code", "MYMEMORY WARNING", "NoneType", "HTTP 402", "HTTP 429", "HTTP 5",
+                        "SSLError", "ConnectionError", "Timeout", "timed out", "usage limit",
+                        "rate limit", "quota", "overloaded")
 
 
 _ARENAS_LIMITED = []
@@ -571,8 +575,20 @@ class AiTranslationUnit(models.Model):
         if not fresh:
             return 0
         errors = results.pop("__errors__", {})
+        outages = results.pop("__outages__", {})
+        used = job["translators"] + job["reviewers"] + job.get("extra", [])
+        self.env["ai.translation.provider"].search([("name", "in", [p.name for p in used])])._note_outcome(
+            errors, outages)
         for unit in fresh:
-            unit._store_result(results[str(unit.id)], errors, watch)
+            unit._store_result(results[str(unit.id)], errors, watch, outages)
+        held = fresh.filtered(lambda u: u.state == "new")       # a provider outage: try again later
+        if held:
+            until = time.monotonic() + COOLDOWN_SECONDS
+            for unit in held:
+                _COOLDOWN[(self.env.cr.dbname, unit.id)] = until
+            fresh -= held
+            if not fresh:
+                return 0
         fresh.write({"processed_at": fields.Datetime.now(), "process_seconds": elapsed / len(fresh)})
         if watch.bulk_chars:
             fresh = fresh - fresh._retry_failed()
@@ -640,9 +656,16 @@ class AiTranslationUnit(models.Model):
         start = max(0, pos - limit // 3) if pos >= 0 else 0
         return full[start:start + limit]
 
-    def _store_result(self, res, errors, watch):
-        """Persist candidates, ratings and the verdict of the pipeline for this unit."""
+    def _store_result(self, res, errors, watch, outages=()):
+        """Persist candidates, ratings and the verdict of the pipeline for this unit.
+
+        When a provider was out of service (``outages``) and nobody proposed a text, the unit stays
+        queued: it would be wrong to call it failed or, for proofreading, unchanged."""
         self.ensure_one()
+        provider_errors = "; ".join("%s: %s" % kv for kv in sorted(errors.items()))
+        if outages and not any(g.origin in ("translation", "revision") for g in res.groups.values()):
+            self.write({"error": provider_errors, "reason": False})
+            return
         Candidate = self.env["ai.translation.candidate"]
         by_key = {}
         winner = res.decision.winner
@@ -678,7 +701,6 @@ class AiTranslationUnit(models.Model):
 
         vals = {"rounds": res.rounds, "agreement": res.decision.agreement,
                 "avg_score": res.decision.avg_score, "reason": res.decision.reason}
-        provider_errors = "; ".join("%s: %s" % kv for kv in sorted(errors.items()))
         if not winner:
             vals.update(state="failed", error=provider_errors or res.decision.reason)
         else:
@@ -781,6 +803,27 @@ class AiTranslationUnit(models.Model):
             unit.sudo().rating_ids.unlink()
             unit.write({"state": "new", "final_text": False, "result_hash": False, "error": False,
                         "reason": False, "agreement": 0, "avg_score": 0, "rounds": 0})
+
+    @api.model
+    def _outage_failed_domain(self):
+        markers = [("error", "ilike", m) for m in OUTAGE_ERROR_MARKERS]
+        return [("state", "=", "failed"), ("candidate_ids", "=", False)] + (
+            ["|"] * (len(markers) - 1)) + markers
+
+    @api.model
+    def _retry_outage_failures(self, extra_domain=()):
+        units = self.search(self._outage_failed_domain() + list(extra_domain))
+        units.write({"state": "new", "error": False, "reason": False, "attempts": 0,
+                     "agreement": 0, "avg_score": 0, "rounds": 0})
+        return len(units)
+
+    def action_retry_outage_failures(self):
+        """Queue failed texts again whose failure was a provider outage (limit, quota, crash), not
+        the text: they have no proposal and an error that names the provider."""
+        if not self:
+            return 0
+        done = self._retry_outage_failures([("id", "in", self.ids)])
+        return self._notify(_("%s failed proposals queued again.") % done, "success" if done else "warning")
 
     def action_process_now(self):
         """Run the providers for the selected queued units right away (can take a minute)."""

@@ -34,6 +34,16 @@
         <field name="is_local" eval="False"/>
         <field name="note">Uses a signed-in command line tool, no key stored here. Needs the system parameter ai_translation_consensus.allow_command = True. Set the command line below.</field>
     </record>
+    <record id="provider_antigravity_cli" model="ai.translation.provider">
+        <field name="name">Antigravity CLI (signed-in)</field>
+        <field name="active" eval="False"/>
+        <field name="sequence">12</field>
+        <field name="kind">command</field>
+        <field name="command">agy -p "Do not use any tools or commands, answer directly with the requested JSON only. {prompt}" --mode plan --output-format text --print-timeout 10m</field>
+        <field name="role">both</field>
+        <field name="is_local" eval="False"/>
+        <field name="note">Google's successor of the Gemini CLI, signed in as the Odoo system user (agy, then log in once). The prompt is passed as an argument ({prompt}). --mode plan keeps the tools off; without it agy tries to run commands and returns nothing in headless mode, and --dangerously-skip-permissions must not be used on foreign website text. Needs the system parameter ai_translation_consensus.allow_command = True. Give the full path to agy if it is not on the service's PATH.</field>
+    </record>
     <record id="provider_mymemory" model="ai.translation.provider">
         <field name="name">MyMemory (keyless)</field>
         <field name="active" eval="False"/>

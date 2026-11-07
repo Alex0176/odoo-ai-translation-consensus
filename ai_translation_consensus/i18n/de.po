@@ -1365,7 +1365,6 @@ msgstr "Noch keine Texte gefunden. Drücken Sie"
 
 #. module: ai_translation_consensus
 #. odoo-python
-#: code:addons/ai_translation_consensus/models/ai_translation_watch.py:0
 #: code:addons/ai_translation_consensus/models/ai_translation_wizard.py:0
 msgid "No usable provider. Activate and test at least one under Providers."
 msgstr ""
@@ -2873,3 +2872,108 @@ msgstr ""
 "ohne brauchbaren Vorschlag wird später noch einmal gefragt (höchstens "
 "zweimal), der Rest der Anfrage bleibt erhalten. „Vorschläge je Cron-"
 "Lauf“ auf 0 oder einen hohen Wert stellen."
+
+#. module: ai_translation_consensus
+#. odoo-python
+#: code:addons/ai_translation_consensus/models/ai_translation_unit.py:0
+msgid "%s failed proposals queued again."
+msgstr "%s fehlgeschlagene Vorschläge wurden wieder eingereiht."
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.js:0
+msgid "%s failed texts queued again."
+msgstr "%s fehlgeschlagene Texte wurden wieder eingereiht."
+
+#. module: ai_translation_consensus
+#: model_terms:ir.ui.view,arch_db:ai_translation_consensus.view_ai_translation_watch_form_crosscheck
+msgid "Cross-checks"
+msgstr "Gegenprüfungen"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_provider__error_streak
+msgid "Error Streak"
+msgstr "Fehler in Folge"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_provider__is_paused
+msgid "Is Paused"
+msgstr "Pausiert"
+
+#. module: ai_translation_consensus
+#. odoo-python
+#: code:addons/ai_translation_consensus/models/ai_translation_watch.py:0
+msgid ""
+"No usable provider. Activate and test at least one under Providers "
+"(providers in a pause after a quota or outage are skipped until it ends)."
+msgstr ""
+"Kein nutzbarer Anbieter. Aktivieren und testen Sie unter Anbieter mindestens"
+" einen (Anbieter in einer Pause nach Kontingent oder Ausfall werden bis zu "
+"deren Ende übersprungen)."
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_provider__pause_level
+msgid "Number of pauses in a row; every one lasts twice as long."
+msgstr "Anzahl der Pausen in Folge; jede dauert doppelt so lang."
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_provider__pause_level
+msgid "Pause Level"
+msgstr "Pausenstufe"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_provider__pause_reason
+msgid "Pause Reason"
+msgstr "Pausengrund"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_provider__paused_until
+msgid "Paused Until"
+msgstr "Pausiert bis"
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.xml:0
+msgid "Retry"
+msgstr "Wiederholen"
+
+#. module: ai_translation_consensus
+#: model:ir.actions.server,name:ai_translation_consensus.server_action_unit_retry_outage
+msgid "Retry failures caused by a provider outage"
+msgstr "Durch einen Anbieterausfall fehlgeschlagene Texte wiederholen"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_provider__paused_until
+msgid ""
+"The provider is left alone until then: quota used up, limit reached or "
+"outage. It is tried again afterwards."
+msgstr ""
+"Bis dahin wird der Anbieter in Ruhe gelassen: Kontingent aufgebraucht, Limit"
+" erreicht oder Ausfall. Danach wird er wieder angesprochen."
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.xml:0
+msgid ""
+"UTC (quota, limit or outage);\n"
+"                            the texts wait in the queue."
+msgstr ""
+"UTC (Kontingent, Limit oder Ausfall);\n"
+"                            die Texte warten in der Warteschlange."
+
+#. module: ai_translation_consensus
+#: model_terms:ir.ui.view,arch_db:ai_translation_consensus.view_ai_translation_provider_form
+msgid "Use again now"
+msgstr "Jetzt wieder verwenden"
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.xml:0
+msgid "failed by outage"
+msgstr "durch Ausfall fehlgeschlagen"
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.xml:0
+msgid "is paused until"
+msgstr "pausiert bis"

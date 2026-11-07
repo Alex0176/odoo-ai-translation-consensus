@@ -16,6 +16,7 @@
                 <field name="last_status" widget="badge"
                        decoration-success="last_status == 'ok'" decoration-danger="last_status == 'error'"/>
                 <field name="last_check" optional="show"/>
+                <field name="paused_until" optional="show"/>
                 <field name="active" widget="boolean_toggle"/>
             </list>
         </field>
@@ -28,6 +29,7 @@
             <form>
                 <header>
                     <button name="action_test" type="object" string="Test connection" class="btn-primary"/>
+                    <button name="action_resume" type="object" string="Use again now" invisible="not is_paused"/>
                 </header>
                 <sheet>
                     <widget name="web_ribbon" title="Archived" bg_color="text-bg-danger" invisible="active"/>
@@ -48,6 +50,9 @@
                             <field name="last_status"/>
                             <field name="last_message"/>
                             <field name="last_check"/>
+                            <field name="is_paused" invisible="1"/>
+                            <field name="paused_until" invisible="not is_paused"/>
+                            <field name="pause_reason" invisible="not is_paused"/>
                         </group>
                         <group string="Role">
                             <field name="role"/>

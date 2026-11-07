@@ -5,7 +5,7 @@ from odoo.tests.common import BaseCase, tagged
 from ..engine import checks, consensus, pipeline, prompts
 from ..engine.languages import lang_name
 from ..providers.base import BaseProvider
-from ..providers.http import ProviderError
+from ..providers.http import ProviderError, ProviderUnavailable
 
 
 class FakeProvider(BaseProvider):
@@ -269,6 +269,17 @@ class TestPipeline(BaseCase):
         out = self.run_pipeline([a, b], [a, b])
         self.assertIn("b", out["__errors__"])
         self.assertTrue(out["1"].groups)
+
+    def test_outages_are_told_apart_from_other_errors(self):
+        a = FakeProvider("a", {"Contact": "Kontakt"}, favourite="Kontakt")
+        b = FakeProvider("b", fail=True)
+        c = FakeProvider("c", fail=True)
+        b.generate = lambda *args, **kw: (_ for _ in ()).throw(ProviderUnavailable("limit", 600))
+        out = self.run_pipeline([a, b, c], [a])
+        self.assertEqual(set(out["__errors__"]), {"b", "c"})
+        self.assertEqual(out["__outages__"], {"b": 600})
+        self.assertTrue(pipeline.is_outage(out["__errors__"]["b"]))
+        self.assertFalse(pipeline.is_outage(out["__errors__"]["c"]))
 
     def test_unavailable_reviewers_do_not_cause_a_second_round(self):
         a = FakeProvider("a", {"Contact": "Kontakt"})
