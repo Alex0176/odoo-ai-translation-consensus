@@ -104,6 +104,10 @@ class TestCrossChecks(BaseCase):
         # a brand name next to a few Chinese characters is no wrong script, a short text is not judged
         self.assertEqual(checks.check("Odoo ERP consulting", "Odoo ERP 咨询服务", "translate", "zh_CN")[0], [])
         self.assertEqual(checks.check("Contact", "Contact", "translate", "ru_RU")[0], [])
+        # a name, domain or double-escaped one-word label stays as it is, a sentence does not
+        for name in ("ExampleNet", "www.example.at", "Wifi&amp;nbsp;<br/>", "Example IT Services GmbH",
+                     '<font style="color: red;">Veeam Backup &amp; Replication</font>'):
+            self.assertEqual(checks.check(name, name, "translate", "hy_AM")[0], [])
         # languages written in several scripts are not judged
         self.assertEqual(checks.check(english, english, "translate", "sr_RS")[0], [])
 

@@ -63,6 +63,7 @@ SCRIPTS = {
 ANY_SCRIPT = {"sr", "kk", "mn", "tg", "ky", "tk", "pa", "sd"}
 SCRIPT_MIN_LETTERS = 8
 LATIN_MIN_SHARE = 0.5
+NAME_MAX_WORDS = 5                # an unchanged text of this many words is a name or label, not prose
 OTHER_SCRIPT_MIN_SHARE = 0.2      # brand names stay Latin inside a Chinese or Arabic text
 
 
@@ -160,7 +161,9 @@ def check(source, target, kind="translate", lang="", terms=()):
             errors.append("%s changed" % label)
     if CHATTER.match(target) and not CHATTER.match(source):
         errors.append("contains chatter around the text")
-    wrong = check_script(target, lang) if lang else ""
+    # A name, brand or domain ("ExampleNet", "www.example.at") stays as it is in every script.
+    keeps_name = source.strip() == target.strip() and len(prose(source).split()) <= NAME_MAX_WORDS
+    wrong = check_script(target, lang) if lang and not keeps_name else ""
     if wrong:
         errors.append(wrong)
     if terms:
