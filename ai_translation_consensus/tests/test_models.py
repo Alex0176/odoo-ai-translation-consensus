@@ -178,6 +178,20 @@ class TestModels(TransactionCase):
         prov._note_outcome({"one": pipeline.Outage("quota")}, {"one": 10 ** 7})
         self.assertAlmostEqual((prov.paused_until - fields.Datetime.now()).total_seconds(), 86400, delta=5)
 
+    def test_a_used_up_plan_pauses_the_provider_until_the_reset(self):
+        prov, _watch = self._outage_setup(outage=True)
+        soon = fields.Datetime.to_string(fields.Datetime.now() + timedelta(days=3))
+        windows = [{"name": "Weekly", "window": "", "used": 100.0, "resets_at": soon, "gates": True}]
+        prov._pause_for_usage(windows, "")
+        self.assertTrue(prov.is_paused)
+        self.assertEqual((fields.Datetime.to_string(prov.paused_until), prov.pause_level), (soon, 0))
+        self.assertTrue(prov.pause_reason.startswith("Plan usage used up"))
+        prov._pause_for_usage([dict(windows[0], used=0.0)], "")       # reset credit redeemed
+        self.assertEqual((prov.is_paused, prov.pause_reason), (False, False))
+        prov._note_outcome({"one": pipeline.Outage("limit")}, {"one": None})   # an outage pause is left alone
+        prov._pause_for_usage([dict(windows[0], used=0.0)], "")
+        self.assertTrue(prov.is_paused)
+
     def test_other_errors_pause_the_provider_only_when_they_repeat(self):
         prov, _watch = self._outage_setup(fail=True)
         for streak in (1, 2):

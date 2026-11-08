@@ -140,6 +140,15 @@ What has been verified:
   headers, error handling, retries, secret masking). The test suite does not call the vendors'
   live APIs; if one of the presets needs a correction, please open an issue or a pull request.
 
+**Plan usage of signed-in tools.** For Codex (`codex app-server`) and Antigravity (`agy -p /usage`) a cron
+reads every 10 minutes how much of the subscription window is used up; the dashboard shows it per
+provider. When a window reaches 100 % the provider is paused **until that window resets**, instead of
+sending requests that are certain to be refused; the pause ends by itself when the figures show room
+again (reset, or a free reset credit was redeemed). Every Codex window blocks. The windows of
+Antigravity belong to model families, so name the one your command uses in the extra options of the
+provider, e.g. `{"usage_window": "Gemini"}` (part of the window name); without it Antigravity is never
+paused by its usage. *Use again now* lifts the pause until the next reading.
+
 ## Installation
 
 ```bash

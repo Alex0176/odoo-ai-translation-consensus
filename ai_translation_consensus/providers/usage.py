@@ -115,7 +115,7 @@ def parse_codex(result):
                 continue
             windows.append({"name": snap.get("limitName") or "", "window": "", "minutes": win.get("windowDurationMins"),
                             "used": max(0.0, min(100.0, float(win["usedPercent"]))),
-                            "resets_at": _utc(win.get("resetsAt"))})
+                            "resets_at": _utc(win.get("resetsAt")), "gates": True})
     if not windows:
         raise ProviderError("no usage figures in the answer: %s" % json.dumps(result)[:200])
     credits = (result.get("rateLimitResetCredits") or {}).get("credits") or []
@@ -155,6 +155,27 @@ def _read_codex(executable, timeout):
                         raise ProviderError("usage request refused: %s" % json.dumps(message["error"])[:200])
                     return parse_codex(message.get("result"))
         raise ProviderError("no answer to the usage request within %s s" % timeout)
+
+
+EXHAUSTED_PERCENT = 99.5
+
+
+def exhausted_until(windows, gate_name="", now=None):
+    """``(resets_at, name)`` of the latest used-up window that blocks the tool, or None.
+
+    Every window of Codex blocks it. The windows of Antigravity belong to model families, so only
+    the one named by ``gate_name`` (part of the window name, any case) blocks. A window whose reset
+    time has passed counts as reset: the figures are older than the reset.
+    """
+    now = now or datetime.now(timezone.utc).strftime(TIME_FORMAT)
+    gate = (gate_name or "").strip().casefold()
+    blocking = [w for w in windows or []
+                if (w.get("gates") or (gate and gate in ("%s %s" % (w.get("name"), w.get("window"))).casefold()))
+                and w.get("used", 0) >= EXHAUSTED_PERCENT and w.get("resets_at") and w["resets_at"] > now]
+    if not blocking:
+        return None
+    last = max(blocking, key=lambda w: w["resets_at"])
+    return last["resets_at"], (last.get("name") or last.get("window") or "").strip()
 
 
 _READERS = {"agy": _read_agy, "codex": _read_codex}

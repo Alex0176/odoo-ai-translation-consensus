@@ -395,3 +395,18 @@ class TestPlanUsage(BaseCase):
         self.assertTrue(providers.usage.supported("codex exec -"))
         self.assertFalse(providers.usage.supported("claude -p"))
         self.assertIsNone(providers.usage.read("claude -p"))
+
+    def test_a_used_up_window_blocks_until_its_reset(self):
+        gem = {"name": "Gemini Models", "window": "Weekly Limit", "used": 100.0, "resets_at": "2026-11-13 23:44:45"}
+        other = {"name": "Claude and GPT models", "window": "Weekly Limit", "used": 100.0, "resets_at": "2026-11-15 12:00:00"}
+        now = "2026-11-08 12:00:00"
+        until = providers.usage.exhausted_until
+        self.assertIsNone(until([gem, other], "", now))                       # Antigravity: windows are model families
+        self.assertEqual(until([gem, other], "gemini", now), ("2026-11-13 23:44:45", "Gemini Models"))
+        self.assertIsNone(until([dict(gem, used=70.0)], "Gemini", now))
+        self.assertIsNone(until([gem], "Gemini", "2026-11-14 00:00:00"))      # already reset
+        codex = providers.usage.parse_codex({"rateLimits": {
+            "primary": {"usedPercent": 100, "windowDurationMins": 300, "resetsAt": 1794600000},
+            "secondary": {"usedPercent": 100, "windowDurationMins": 10080, "resetsAt": 1794682108}}})
+        self.assertEqual(until(codex["windows"], "", now)[0], "2026-11-14 18:48:28")   # the later one
+

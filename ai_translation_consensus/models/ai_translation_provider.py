@@ -12,6 +12,7 @@ from .. import providers
 PAUSE_BASE_SECONDS = 300          # first pause after an outage; doubles with every failed probe
 PAUSE_MAX_SECONDS = 6 * 3600
 PAUSE_ASKED_MAX_SECONDS = 24 * 3600   # a provider that says when it is back (daily quota)
+USAGE_PAUSE_PREFIX = "Plan usage used up"
 ERROR_STREAK_LIMIT = 3            # other errors pause the provider after this many in a row
 
 
@@ -180,6 +181,23 @@ class AiTranslationProvider(models.Model):
                 continue
             prov.write({"usage_json": json.dumps(data) if data else False, "usage_error": False,
                         "usage_checked": now})
+            if data:
+                prov._pause_for_usage(data["windows"], cfg["extra"].get("usage_window"))
+
+    def _pause_for_usage(self, windows, gate_name):
+        """Pause until the plan resets when its used-up window blocks the provider; lift a pause of
+        this kind as soon as no window blocks any more (reset, or a free reset credit was redeemed)."""
+        self.ensure_one()
+        now = fields.Datetime.now()
+        blocked = providers.usage.exhausted_until(windows, gate_name, fields.Datetime.to_string(now))
+        if blocked:
+            until = fields.Datetime.to_datetime(blocked[0])
+            if self.paused_until != until or not (self.pause_reason or "").startswith(USAGE_PAUSE_PREFIX):
+                self.write({"paused_until": until, "pause_level": 0, "error_streak": 0,
+                            "pause_reason": "%s (%s), back at %s UTC" % (
+                                USAGE_PAUSE_PREFIX, blocked[1] or "plan", blocked[0])})
+        elif (self.pause_reason or "").startswith(USAGE_PAUSE_PREFIX):
+            self.write({"paused_until": False, "pause_reason": False, "pause_level": 0})
 
     @api.model
     def _dashboard_overview(self):
