@@ -11,4 +11,15 @@
         <field name="interval_type">minutes</field>
         <field name="active" eval="False"/>
     </record>
+    <!-- Read-only: asks the signed-in command line tools (Codex, Antigravity) how much of their plan is used up. -->
+    <record id="ir_cron_ai_translation_usage" model="ir.cron">
+        <field name="name">AI Translation: read plan usage of the providers</field>
+        <field name="model_id" ref="model_ai_translation_provider"/>
+        <field name="state">code</field>
+        <field name="code">model._cron_read_usage()</field>
+        <field name="user_id" ref="base.user_root"/>
+        <field name="interval_number">10</field>
+        <field name="interval_type">minutes</field>
+        <field name="nextcall" eval="(DateTime.now() + timedelta(minutes=10)).strftime('%Y-%m-%d %H:%M:%S')"/>
+    </record>
 </odoo>

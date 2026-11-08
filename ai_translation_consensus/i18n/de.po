@@ -2977,3 +2977,135 @@ msgstr "durch Ausfall fehlgeschlagen"
 #: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.xml:0
 msgid "is paused until"
 msgstr "pausiert bis"
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.xml:0
+msgid "Providers and plan usage"
+msgstr "Anbieter und Kontingent"
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.xml:0
+msgid "Read usage now"
+msgstr "Kontingent jetzt auslesen"
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.xml:0
+msgid "paused"
+msgstr "pausiert"
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.xml:0
+msgid "error"
+msgstr "Fehler"
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.xml:0
+msgid "active"
+msgstr "aktiv"
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.xml:0
+msgid "Paused until"
+msgstr "Pausiert bis"
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.xml:0
+msgid "used"
+msgstr "verbraucht"
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.xml:0
+msgid "free limit resets available on the account."
+msgstr "kostenlose Limit-Rücksetzungen im Konto verfügbar."
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.xml:0
+msgid "Usage not read yet."
+msgstr "Kontingent noch nicht ausgelesen."
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.xml:0
+msgid "This provider reports no usage figures."
+msgstr "Dieser Anbieter meldet keine Verbrauchswerte."
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.xml:0
+msgid "requests in the last 24 hours"
+msgstr "Anfragen in den letzten 24 Stunden"
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.xml:0
+msgid "· read at"
+msgstr "· gelesen um"
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.js:0
+msgid "Weekly limit"
+msgstr "Wochenlimit"
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.js:0
+msgid "%s-week limit"
+msgstr "%s-Wochen-Limit"
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.js:0
+msgid "Daily limit"
+msgstr "Tageslimit"
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.js:0
+msgid "%s-day limit"
+msgstr "%s-Tage-Limit"
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.js:0
+msgid "%s-hour limit"
+msgstr "%s-Stunden-Limit"
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.js:0
+msgid "%s-minute limit"
+msgstr "%s-Minuten-Limit"
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.js:0
+msgid "Limit"
+msgstr "Limit"
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.js:0
+msgid "resets %s (%s)"
+msgstr "wird zurückgesetzt %s (%s)"
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.js:0
+msgid "Usage read from %s providers."
+msgstr "Kontingent von %s Anbietern gelesen."
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.js:0
+msgid "No provider can report its usage."
+msgstr "Kein Anbieter kann sein Kontingent melden."

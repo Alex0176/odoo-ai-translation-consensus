@@ -10,6 +10,7 @@ from odoo import _, api, fields, models
 from odoo.exceptions import UserError, ValidationError
 from odoo.tools.safe_eval import safe_eval
 
+from .. import providers
 from .ai_translation_unit import BULK_MAX_ITEMS, BULK_TIMEOUT, OPEN_STATES
 
 SCAN_RESERVE_SECONDS = 5
@@ -509,6 +510,7 @@ class AiTranslationWatch(models.Model):
                              cron.interval_type, cron.interval_type)) if cron else ""},
             "can_manage": self.env.user.has_group("ai_translation_consensus.group_ai_translation_manager"),
             "rules": rules,
+            "providers": self.env["ai.translation.provider"]._dashboard_overview(),
         }
 
     @api.model
@@ -522,6 +524,15 @@ class AiTranslationWatch(models.Model):
     def _dashboard_check_manager(self):
         if not self.env.user.has_group("ai_translation_consensus.group_ai_translation_manager"):
             raise UserError(_("Only managers can do this."))
+
+    @api.model
+    def dashboard_refresh_usage(self):
+        """Read the plan usage of the command line providers now. Returns how many were asked."""
+        self._dashboard_check_manager()
+        provs = self.env["ai.translation.provider"].sudo().search([("kind", "=", "command")]).filtered(
+            lambda p: providers.usage.supported(p.command))
+        provs._read_usage(timeout=20)
+        return len(provs)
 
     def dashboard_retry_failed(self):
         """Queue the failures of the rules that a provider outage caused. Returns how many."""

@@ -1,5 +1,6 @@
 # Copyright 2026 Biricon IT Services GmbH
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
+from . import usage
 from .base import BaseProvider, ChatProvider, MTProvider
 from .chat import Anthropic, Cohere, Gemini, LocalCommand, NoKeyOpenAI, OpenAICompatible
 from .http import ProviderError

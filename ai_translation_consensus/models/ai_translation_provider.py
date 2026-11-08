@@ -61,6 +61,10 @@ class AiTranslationProvider(models.Model):
                                  help="Number of pauses in a row; every one lasts twice as long.")
     error_streak = fields.Integer(readonly=True, copy=False)
     is_paused = fields.Boolean(compute="_compute_is_paused")
+    usage_json = fields.Text(readonly=True, copy=False,
+                             help="Plan usage read from the signed-in command line tool (Codex, Antigravity).")
+    usage_checked = fields.Datetime(readonly=True, copy=False)
+    usage_error = fields.Char(readonly=True, copy=False)
     price_input = fields.Float(string="Price per million input tokens", digits=(16, 4),
                                help="In the company currency. Language models bill by tokens; "
                                     "enter the vendor's current price. Leave 0 for a free service.")
@@ -160,6 +164,51 @@ class AiTranslationProvider(models.Model):
             prov.write({"paused_until": now + timedelta(seconds=seconds),
                         "pause_reason": str(errors[prov.name])[:250],
                         "pause_level": prov.pause_level + 1, "error_streak": 0})
+
+    def _read_usage(self, timeout=45):
+        """Ask the tool how much of its plan is used up; the answer is kept for the dashboard."""
+        now = fields.Datetime.now()
+        for prov in self.sudo():
+            cfg = prov._config()
+            try:
+                if not cfg["allow_command"]:
+                    raise providers.ProviderError("command providers are disabled "
+                                                  "(system parameter ai_translation_consensus.allow_command)")
+                data = providers.usage.read(cfg["command"], timeout)
+            except Exception as exc:  # noqa: BLE001
+                prov.write({"usage_error": str(exc)[:250], "usage_checked": now})
+                continue
+            prov.write({"usage_json": json.dumps(data) if data else False, "usage_error": False,
+                        "usage_checked": now})
+
+    @api.model
+    def _dashboard_overview(self):
+        """One entry per active provider for the dashboard: state, plan usage, requests of the last day."""
+        day = self.env["ai.translation.usage"].sudo()._read_group(
+            [("date", ">=", fields.Datetime.now() - timedelta(hours=24))], ["provider_name"],
+            ["calls:sum", "errors:sum", "units:sum"])
+        recent = {name: (calls or 0, errors or 0, units or 0) for name, calls, errors, units in day}
+        result = []
+        for prov in self.sudo().search([]):
+            usage = json.loads(prov.usage_json) if prov.usage_json else {}
+            calls, errors, units = recent.get(prov.name, (0, 0, 0))
+            result.append({
+                "id": prov.id, "name": prov.name, "kind": prov.kind,
+                "paused": prov.is_paused, "paused_until": fields.Datetime.to_string(prov.paused_until),
+                "pause_reason": prov.pause_reason or "", "last_status": prov.last_status or "",
+                "windows": usage.get("windows") or [], "free_resets": usage.get("free_resets") or 0,
+                "checked": fields.Datetime.to_string(prov.usage_checked), "usage_error": prov.usage_error or "",
+                "measurable": prov.kind == "command" and providers.usage.supported(prov.command),
+                "calls_24h": calls, "errors_24h": errors, "units_24h": units,
+            })
+        return result
+
+    @api.model
+    def _cron_read_usage(self):
+        for prov in self.search([("kind", "=", "command")]):
+            if providers.usage.supported(prov.sudo().command):
+                prov._read_usage()
+                self.env.cr.commit()
 
     def action_resume(self):
         """Use the provider again right away instead of waiting for the pause to end."""

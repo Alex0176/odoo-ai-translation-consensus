@@ -71,6 +71,51 @@ export class AiTranslationDashboard extends Component {
         return this.pct(rule.closed, rule.total);
     }
 
+    windowLabel(win) {
+        const minutes = win.minutes;
+        let span = win.window;
+        if (minutes) {
+            if (minutes % 10080 === 0) {
+                span = minutes === 10080 ? _t("Weekly limit") : _t("%s-week limit", minutes / 10080);
+            } else if (minutes % 1440 === 0) {
+                span = minutes === 1440 ? _t("Daily limit") : _t("%s-day limit", minutes / 1440);
+            } else if (minutes % 60 === 0) {
+                span = _t("%s-hour limit", minutes / 60);
+            } else {
+                span = _t("%s-minute limit", minutes);
+            }
+        }
+        return [win.name, span].filter(Boolean).join(" · ") || _t("Limit");
+    }
+
+    resetText(win) {
+        if (!win.resets_at) {
+            return "";
+        }
+        const at = DateTime.fromSQL(win.resets_at, { zone: "utc" }).toLocal();
+        return _t("resets %s (%s)", at.toLocaleString(DateTime.DATETIME_MED), at.toRelative());
+    }
+
+    usageClass(win) {
+        return win.used >= 95 ? "bg-danger" : win.used >= 75 ? "bg-warning" : "bg-success";
+    }
+
+    checkedText(prov) {
+        return prov.checked
+            ? DateTime.fromSQL(prov.checked, { zone: "utc" }).toLocal().toLocaleString(DateTime.TIME_SIMPLE)
+            : "";
+    }
+
+    pausedText(prov) {
+        return DateTime.fromSQL(prov.paused_until, { zone: "utc" }).toLocal().toLocaleString(DateTime.DATETIME_MED);
+    }
+
+    refreshUsage() {
+        return this.run("usage", "dashboard_refresh_usage", [], (n) =>
+            n ? _t("Usage read from %s providers.", n) : _t("No provider can report its usage.")
+        );
+    }
+
     kindLabel(rule) {
         return rule.kind === "translate" ? _t("Translation") : _t("Proofreading");
     }

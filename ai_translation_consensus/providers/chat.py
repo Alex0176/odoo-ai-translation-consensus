@@ -152,6 +152,9 @@ _CLI_OUTAGE = re.compile(
     r"authentication|unauthorized|log ?in", re.I)
 
 
+LIFT_MEMORY_LIMIT = 'ulimit -S -v "$(ulimit -H -v)" 2>/dev/null; exec "$@"'
+
+
 def _cli_failure(returncode, stdout, stderr):
     """The error for a CLI that exited non-zero. Banners come first, the reason comes last."""
     text = " | ".join(part.strip()[-300:] for part in (stderr, stdout) if part and part.strip())
@@ -195,7 +198,7 @@ class LocalCommand(ChatProvider):
             cmd = [arg.replace("{prompt}", prompt) for arg in cmd]
         # Odoo workers cap the address space (limit_memory_hard); Go based tools such as agy
         # reserve far more virtual memory and die with "out of memory", so lift the soft limit.
-        cmd = ["sh", "-c", 'ulimit -S -v "$(ulimit -H -v)" 2>/dev/null; exec "$@"', "sh"] + cmd
+        cmd = ["sh", "-c", LIFT_MEMORY_LIMIT, "sh"] + cmd
         try:
             with tempfile.TemporaryDirectory() as cwd:
                 proc = subprocess.run(cmd, input=None if as_argument else prompt,

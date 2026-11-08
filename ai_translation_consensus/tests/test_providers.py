@@ -361,3 +361,37 @@ class TestProviders(BaseCase):
     def test_every_registered_kind_can_be_built(self):
         for kind in providers.REGISTRY:
             self.assertTrue(providers.build(kind, {"name": kind}).kind)
+
+
+@tagged("post_install", "-at_install")
+class TestPlanUsage(BaseCase):
+    def test_antigravity_report(self):
+        text = ("Gemini Models\tWeekly Limit Remaining\t51%\t2026-11-13T23:44:45Z\n"
+                "Claude and GPT models\tWeekly Limit Remaining\t100%\t2026-11-15T12:22:25Z\n")
+        first, second = providers.usage.parse_agy(text)["windows"]
+        self.assertEqual((first["name"], first["minutes"], first["used"], first["resets_at"]),
+                         ("Gemini Models", 10080, 49.0, "2026-11-13 23:44:45"))
+        self.assertEqual(second["used"], 0.0)
+        with self.assertRaises(ProviderError):
+            providers.usage.parse_agy("Please sign in first.\n")
+
+    def test_codex_report(self):
+        limit = {"limitId": "codex", "limitName": None,
+                 "primary": {"usedPercent": 100, "windowDurationMins": 10080, "resetsAt": 1794682108},
+                 "secondary": {"usedPercent": 37.5, "windowDurationMins": 300, "resetsAt": 1794600000}}
+        data = providers.usage.parse_codex({
+            "rateLimits": limit, "rateLimitsByLimitId": {"codex": limit},
+            "rateLimitResetCredits": {"availableCount": 1, "credits": [
+                {"status": "available"}, {"status": "used"}]}})
+        week, hours = data["windows"]
+        self.assertEqual((week["minutes"], week["used"], week["resets_at"]), (10080, 100.0, "2026-11-14 18:48:28"))
+        self.assertEqual((hours["minutes"], hours["used"]), (300, 37.5))
+        self.assertEqual(data["free_resets"], 1)
+        with self.assertRaises(ProviderError):
+            providers.usage.parse_codex({})
+
+    def test_which_tools_report_usage(self):
+        self.assertTrue(providers.usage.supported("/usr/local/bin/agy -p {prompt}"))
+        self.assertTrue(providers.usage.supported("codex exec -"))
+        self.assertFalse(providers.usage.supported("claude -p"))
+        self.assertIsNone(providers.usage.read("claude -p"))

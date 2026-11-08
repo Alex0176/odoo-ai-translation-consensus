@@ -38,6 +38,60 @@
                     </button>
                 </div>
 
+                <div t-if="state.data.providers and state.data.providers.length" class="card mb-4">
+                    <div class="card-body">
+                        <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                            <h4 class="mb-0 me-auto">Providers and plan usage</h4>
+                            <button t-if="state.data.can_manage and state.data.providers.some((p) => p.measurable)"
+                                    class="btn btn-sm btn-secondary" t-att-disabled="state.busy.usage"
+                                    t-on-click="() => this.refreshUsage()">
+                                <i t-if="state.busy.usage" class="fa fa-spinner fa-spin me-1"/>
+                                Read usage now
+                            </button>
+                        </div>
+                        <div class="row g-3">
+                            <div t-foreach="state.data.providers" t-as="prov" t-key="prov.id" class="col-12 col-md-6 col-xl-4">
+                                <div class="border rounded p-3 h-100">
+                                    <div class="d-flex align-items-center gap-2 mb-2">
+                                        <b class="me-auto" t-esc="prov.name"/>
+                                        <span t-if="prov.paused" class="badge text-bg-warning">paused</span>
+                                        <span t-elif="prov.last_status == 'error'" class="badge text-bg-danger">error</span>
+                                        <span t-else="" class="badge text-bg-success">active</span>
+                                    </div>
+                                    <div t-if="prov.paused" class="small text-muted mb-2">
+                                        Paused until <t t-esc="pausedText(prov)"/>:
+                                        <t t-esc="prov.pause_reason.slice(0, 160)"/>
+                                    </div>
+                                    <div t-foreach="prov.windows" t-as="win" t-key="win_index" class="mb-2">
+                                        <div class="d-flex justify-content-between small">
+                                            <span t-esc="windowLabel(win)"/>
+                                            <b><t t-esc="Math.round(win.used)"/>% used</b>
+                                        </div>
+                                        <div class="progress" style="height: 8px;">
+                                            <div class="progress-bar" t-att-class="usageClass(win)"
+                                                 t-att-style="'width:' + win.used + '%'"/>
+                                        </div>
+                                        <div class="small text-muted" t-if="win.resets_at" t-esc="resetText(win)"/>
+                                    </div>
+                                    <div t-if="prov.free_resets" class="small text-info mb-2">
+                                        <t t-esc="prov.free_resets"/> free limit resets available on the account.
+                                    </div>
+                                    <div t-if="!prov.windows.length" class="small text-muted mb-2">
+                                        <t t-if="prov.measurable">Usage not read yet.</t>
+                                        <t t-else="">This provider reports no usage figures.</t>
+                                    </div>
+                                    <div t-if="prov.usage_error" class="small text-danger mb-2" t-esc="prov.usage_error"/>
+                                    <div class="small text-muted">
+                                        <t t-esc="num(prov.calls_24h)"/> requests in the last 24 hours
+                                        <span t-if="prov.errors_24h" class="text-danger">(<t t-esc="num(prov.errors_24h)"/> failed)</span>
+                                        <t t-if="prov.checked"> · read at <t t-esc="checkedText(prov)"/></t>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div t-if="!state.data.rules.length" class="alert alert-info">
                     There are no rules yet. Open <b>Start here</b> to create the first one.
                 </div>
