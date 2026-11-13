@@ -14,3 +14,5 @@ access_rating_manager,ai.translation.rating manager,model_ai_translation_rating,
 access_wizard_manager,ai.translation.wizard manager,model_ai_translation_wizard,group_ai_translation_manager,1,1,1,1
 access_usage_user,ai.translation.usage user,model_ai_translation_usage,group_ai_translation_user,1,0,0,0
 access_usage_manager,ai.translation.usage manager,model_ai_translation_usage,group_ai_translation_manager,1,1,1,1
+access_purpose_user,ai.translation.purpose user,model_ai_translation_purpose,group_ai_translation_user,1,0,0,0
+access_purpose_manager,ai.translation.purpose manager,model_ai_translation_purpose,group_ai_translation_manager,1,1,1,1

@@ -9,13 +9,16 @@
                 <field name="name"/>
                 <field name="kind"/>
                 <field name="model"/>
-                <field name="role"/>
+                <field name="purpose_ids" widget="many2many_tags" options="{'color_field': 'color'}" width="250px"/>
+                <field name="role" optional="hide"/>
+                <field name="can_read_documents" optional="hide"/>
+                <field name="allow_documents_external" optional="hide"/>
                 <field name="needs_key" optional="show"/>
                 <field name="is_local" optional="show"/>
                 <field name="weight" optional="hide"/>
                 <field name="last_status" widget="badge"
                        decoration-success="last_status == 'ok'" decoration-danger="last_status == 'error'"/>
-                <field name="last_check" optional="show"/>
+                <field name="last_check" optional="hide"/>
                 <field name="paused_until" optional="show"/>
                 <field name="active" widget="boolean_toggle"/>
             </list>
@@ -55,6 +58,17 @@
                             <field name="pause_reason" invisible="not is_paused"/>
                         </group>
                         <group string="Role">
+                            <field name="purpose_ids" widget="many2many_tags"
+                                   options="{'color_field': 'color', 'no_create': True}"/>
+                            <field name="can_read_documents"/>
+                            <field name="allow_documents_external"
+                                   invisible="is_local or not can_read_documents"/>
+                            <div class="alert alert-warning" role="alert" colspan="2"
+                                 invisible="is_local or not can_read_documents">
+                                Invoices contain data of third parties (suppliers, bank accounts, tax numbers).
+                                An external provider only reads invoices when "Allow invoices to leave the
+                                server" is switched on.
+                            </div>
                             <field name="role"/>
                             <field name="weight"/>
                             <field name="is_local"/>
@@ -73,6 +87,29 @@
                     </group>
                 </sheet>
             </form>
+        </field>
+    </record>
+
+    <record id="view_ai_translation_provider_search" model="ir.ui.view">
+        <field name="name">ai.translation.provider.search</field>
+        <field name="model">ai.translation.provider</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="kind"/>
+                <field name="purpose_ids"/>
+                <filter name="purpose_translate" string="Translations"
+                        domain="[('purpose_ids.code', '=', 'translate')]"/>
+                <filter name="purpose_invoice" string="Invoices"
+                        domain="[('purpose_ids.code', 'in', ('invoice_manual', 'invoice_auto'))]"/>
+                <filter name="purpose_invoice_manual" string="Invoices - manual"
+                        domain="[('purpose_ids.code', '=', 'invoice_manual')]"/>
+                <filter name="purpose_invoice_auto" string="Invoices - automatic"
+                        domain="[('purpose_ids.code', '=', 'invoice_auto')]"/>
+                <separator/>
+                <filter name="reads_documents" string="Can read documents" domain="[('can_read_documents', '=', True)]"/>
+                <filter name="inactive" string="Archived" domain="[('active', '=', False)]"/>
+            </search>
         </field>
     </record>
 

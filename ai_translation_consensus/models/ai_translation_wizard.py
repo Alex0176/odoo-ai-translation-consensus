@@ -6,6 +6,8 @@ from odoo import _, api, fields, models
 from odoo.exceptions import UserError
 from odoo.tools.safe_eval import safe_eval
 
+from .ai_translation_purpose import PURPOSE_TRANSLATE
+
 STEPS = ["intro", "what", "who", "done"]
 
 
@@ -51,7 +53,7 @@ class AiTranslationWizard(models.TransientModel):
         ("outdated", "Missing and outdated translations"),
     ], default="missing", required=True)
     provider_ids = fields.Many2many("ai.translation.provider", string="Providers",
-                                    domain="[('active', '=', True)]",
+                                    domain="[('active', '=', True), ('purpose_ids.code', '=', 'translate')]",
                                     help="Empty = every active provider that is ready.")
     confidential = fields.Boolean(string="Confidential (own infrastructure only)")
     instructions = fields.Text(help="Hints for every provider: tone, formal or informal address, "
@@ -94,7 +96,7 @@ class AiTranslationWizard(models.TransientModel):
     def _compute_provider_status(self):
         Provider = self.env["ai.translation.provider"]
         for wiz in self:
-            active = Provider.search([("active", "=", True)])
+            active = Provider.search([("active", "=", True)])._with_purpose(PURPOSE_TRANSLATE)
             if not active:
                 wiz.provider_status = Markup(
                     '<div class="alert alert-danger">%s</div>') % _(

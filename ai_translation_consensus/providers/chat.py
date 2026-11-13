@@ -7,6 +7,9 @@ import shutil
 import subprocess
 import tempfile
 
+from urllib.parse import urlparse
+
+from . import documents
 from .base import ChatProvider
 from .http import ProviderError, ProviderUnavailable, call
 
@@ -22,9 +25,39 @@ class OpenAICompatible(ChatProvider):
 
     kind = "openai"
     label = "OpenAI-compatible API"
+    can_read_documents = True       # needs a model that sees images (gpt-4o, pixtral, llava ...)
     defaults = {"base_url": "https://api.openai.com/v1", "model": "gpt-4o"}
+    # Services that take a PDF as a "file" block; every other endpoint gets the pages as images.
+    PDF_FILE_HOSTS = ("api.openai.com", "openrouter.ai")
 
     def _complete(self, system, user):
+        return self._chat(system, user)
+
+    def _pdf_as_file(self):
+        mode = self.extra.get("pdf_mode")
+        if mode in ("file", "images"):
+            return mode == "file"
+        host = urlparse(self.cfg.get("base_url") or self.defaults["base_url"]).hostname or ""
+        return host in self.PDF_FILE_HOSTS
+
+    def _complete_document(self, system, user, files):
+        parts = []
+        for item in files:
+            if item["mimetype"] == documents.PDF_TYPE and self._pdf_as_file():
+                parts.append({"type": "file", "file": {
+                    "filename": item["name"] or "document.pdf",
+                    "file_data": "data:application/pdf;base64," + item["data_b64"]}})
+                continue
+            pages = (documents.pdf_to_png(item["data_b64"]) if item["mimetype"] == documents.PDF_TYPE
+                     else [item["data_b64"]])
+            mimetype = "image/png" if item["mimetype"] == documents.PDF_TYPE else item["mimetype"]
+            for page in pages:
+                parts.append({"type": "image_url",
+                              "image_url": {"url": "data:%s;base64,%s" % (mimetype, page)}})
+        parts.append({"type": "text", "text": user})
+        return self._chat(system, parts)
+
+    def _chat(self, system, user):
         base = (self.cfg.get("base_url") or self.defaults["base_url"]).rstrip("/")
         if not self.cfg.get("model"):
             raise ProviderError("no model configured")
@@ -62,9 +95,22 @@ class NoKeyOpenAI(OpenAICompatible):
 class Anthropic(ChatProvider):
     kind = "anthropic"
     label = "Anthropic Claude"
+    can_read_documents = True
     defaults = {"base_url": "https://api.anthropic.com/v1", "model": "claude-sonnet-5"}
 
     def _complete(self, system, user):
+        return self._messages(system, user)
+
+    def _complete_document(self, system, user, files):
+        blocks = []
+        for item in files:
+            kind = "document" if item["mimetype"] == documents.PDF_TYPE else "image"
+            blocks.append({"type": kind, "source": {"type": "base64", "media_type": item["mimetype"],
+                                                    "data": item["data_b64"]}})
+        blocks.append({"type": "text", "text": user})
+        return self._messages(system, blocks)
+
+    def _messages(self, system, user):
         self._need_key()
         base = (self.cfg.get("base_url") or self.defaults["base_url"]).rstrip("/")
         body = {
@@ -90,16 +136,25 @@ class Anthropic(ChatProvider):
 class Gemini(ChatProvider):
     kind = "gemini"
     label = "Google Gemini"
+    can_read_documents = True
     defaults = {"base_url": "https://generativelanguage.googleapis.com/v1beta",
                 "model": "gemini-2.5-flash"}
 
     def _complete(self, system, user):
+        return self._generate(system, [{"text": user}])
+
+    def _complete_document(self, system, user, files):
+        parts = [{"inlineData": {"mimeType": item["mimetype"], "data": item["data_b64"]}} for item in files]
+        parts.append({"text": user})
+        return self._generate(system, parts)
+
+    def _generate(self, system, parts):
         self._need_key()
         base = (self.cfg.get("base_url") or self.defaults["base_url"]).rstrip("/")
         model = self.cfg.get("model") or self.defaults["model"]
         body = {
             "systemInstruction": {"parts": [{"text": system}]},
-            "contents": [{"role": "user", "parts": [{"text": user}]}],
+            "contents": [{"role": "user", "parts": parts}],
             "generationConfig": {"responseMimeType": "application/json"},
         }
         body.update(self.extra.get("body") or {})

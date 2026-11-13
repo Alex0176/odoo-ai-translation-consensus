@@ -10,7 +10,10 @@ class AiTranslationUsage(models.Model):
     _description = "AI translation usage"
     _order = "id desc"
 
-    watch_id = fields.Many2one("ai.translation.watch", required=True, ondelete="cascade", index=True)
+    watch_id = fields.Many2one("ai.translation.watch", ondelete="cascade", index=True,
+                               help="Empty for other uses, such as reading invoices.")
+    purpose_id = fields.Many2one("ai.translation.purpose", ondelete="set null",
+                                 help="What the provider was asked to do.")
     provider_id = fields.Many2one("ai.translation.provider", ondelete="set null")
     provider_name = fields.Char(required=True)
     date = fields.Datetime(default=fields.Datetime.now, index=True)
@@ -28,7 +31,7 @@ class AiTranslationUsage(models.Model):
     priced = fields.Boolean(help="A price was entered on the provider, so the cost is known.")
 
     @api.model
-    def _log(self, watch, impls, lang, units):
+    def _log(self, watch, impls, lang, units, purpose=None):
         """Store the usage of the provider objects used for one batch."""
         providers = {p.name: p for p in self.env["ai.translation.provider"].with_context(
             active_test=False).search([("name", "in", [i.name for i in impls])])}
@@ -43,7 +46,8 @@ class AiTranslationUsage(models.Model):
             prov = providers.get(impl.name)
             cost, priced = (prov._cost(usage) if prov else (0.0, False))
             vals_list.append({
-                "watch_id": watch.id, "provider_id": prov.id if prov else False,
+                "watch_id": watch.id or False, "purpose_id": purpose.id if purpose else False,
+                "provider_id": prov.id if prov else False,
                 "provider_name": impl.name, "lang": lang, "units": units,
                 "calls": usage["calls"], "errors": usage["errors"],
                 "input_tokens": usage["input_tokens"], "output_tokens": usage["output_tokens"],

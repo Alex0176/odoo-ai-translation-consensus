@@ -8,6 +8,8 @@ from odoo import _, api, fields, models
 from odoo.exceptions import ValidationError
 
 from .. import providers
+from ..providers.http import ProviderError, ProviderUnavailable
+from .ai_translation_purpose import INVOICE_PURPOSES, PURPOSE_TRANSLATE
 
 PAUSE_BASE_SECONDS = 300          # first pause after an outage; doubles with every failed probe
 PAUSE_MAX_SECONDS = 6 * 3600
@@ -73,7 +75,23 @@ class AiTranslationProvider(models.Model):
     price_chars = fields.Float(string="Price per million characters", digits=(16, 4),
                                help="Translation engines such as DeepL bill by characters.")
 
+    purpose_ids = fields.Many2many(
+        "ai.translation.purpose", "ai_translation_provider_purpose_rel", "provider_id", "purpose_id",
+        string="Purposes", default=lambda self: self._default_purposes(),
+        help="What this provider may be used for. Translation runs only use providers with the purpose "
+             "'Translations'; invoices are only read by providers with an invoice purpose.")
+    can_read_documents = fields.Boolean(compute="_compute_kind_flags", search="_search_can_read_documents",
+                                        help="The service can read images and PDF files (multimodal).")
+    allow_documents_external = fields.Boolean(
+        string="Allow invoices to leave the server", copy=False,
+        help="Invoices contain data of third parties (suppliers, bank accounts, tax numbers). A provider "
+             "that does not run on your own infrastructure only reads invoices when this is switched on.")
+
     _name_uniq = models.Constraint("UNIQUE(name)", "The provider name must be unique.")
+
+    @api.model
+    def _default_purposes(self):
+        return self.env["ai.translation.purpose"].sudo().search([("code", "=", PURPOSE_TRANSLATE)])
 
     @api.depends("paused_until")
     def _compute_is_paused(self):
@@ -87,6 +105,35 @@ class AiTranslationProvider(models.Model):
             cls = providers.REGISTRY.get(rec.kind)
             rec.needs_key = bool(cls and cls.needs_key)
             rec.can_review = bool(cls and cls.can_review)
+            rec.can_read_documents = bool(cls and cls.can_read_documents)
+
+    def _search_can_read_documents(self, operator, value):
+        if operator in ("in", "not in"):
+            wanted = any(bool(v) for v in value) if isinstance(value, (list, tuple, set)) else bool(value)
+            positive = wanted == (operator == "in")
+        elif operator in ("=", "!="):
+            positive = bool(value) == (operator == "=")
+        else:
+            raise ValueError("unsupported operator %r" % operator)
+        kinds = [k for k, cls in providers.REGISTRY.items() if cls.can_read_documents]
+        return [("kind", "in" if positive else "not in", kinds)]
+
+    @api.constrains("purpose_ids", "kind")
+    def _check_document_purposes(self):
+        for rec in self:
+            cls = providers.REGISTRY.get(rec.kind)
+            if rec.purpose_ids.filtered("is_document") and not (cls and cls.can_read_documents):
+                raise ValidationError(_(
+                    "%(name)s (%(kind)s) cannot read documents, so it cannot get an invoice purpose.",
+                    name=rec.name, kind=cls.label if cls else rec.kind))
+
+    def _has_purpose(self, code):
+        self.ensure_one()
+        return code in self.sudo().purpose_ids.mapped("code")
+
+    def _with_purpose(self, code):
+        """The providers of this set that have the purpose ``code``."""
+        return self.filtered(lambda p: p._has_purpose(code))
 
     @api.constrains("extra_json")
     def _check_extra_json(self):
@@ -227,6 +274,74 @@ class AiTranslationProvider(models.Model):
             if providers.usage.supported(prov.sudo().command):
                 prov._read_usage()
                 self.env.cr.commit()
+
+    # ------------------------------------------------------------ documents (invoices)
+    def _documents_blocker(self, code, respect_pause=True):
+        """Why this provider must not read documents for the purpose ``code`` right now (text), or ''."""
+        self.ensure_one()
+        rec = self.sudo()
+        if not rec.active:
+            return _("archived")
+        if not rec._has_purpose(code):
+            return _("purpose not set")
+        if not rec.can_read_documents:
+            return _("cannot read documents")
+        if not (rec.is_local or rec.allow_documents_external):
+            return _("invoices may not leave the server (data protection switch is off)")
+        if rec.needs_key and not rec._config()["api_key"]:
+            return _("no API key")
+        if respect_pause and rec.is_paused:
+            return _("paused until %s (%s)", fields.Datetime.to_string(rec.paused_until), rec.pause_reason or "")
+        return ""
+
+    @api.model
+    def _pick_for_documents(self, code, respect_pause=True):
+        """Providers that may read documents for the purpose ``code``, in sequence order.
+
+        Only providers with that purpose, with the ability to read documents, with a key, not in a pause
+        and (when they are not on your own infrastructure) with the data protection switch."""
+        pool = self.sudo().with_context(active_test=False).search([])
+        return pool.filtered(lambda p: not p._documents_blocker(code, respect_pause))
+
+    @api.model
+    def _documents_overview(self, code):
+        """``[(provider name, reason)]`` of every provider that is NOT usable for ``code``; for hints."""
+        out = []
+        for prov in self.sudo().with_context(active_test=False).search([]):
+            reason = prov._documents_blocker(code)
+            if reason and prov._has_purpose(code):
+                out.append((prov.name, reason))
+        return out
+
+    def _read_document(self, system, user, files, code, timeout=None):
+        """Let this provider read ``files`` (see ``ChatProvider.read_document``) and return its answer text.
+
+        Checks the purpose and the data protection switch again, keeps the usage record, the cost and
+        the pause logic of the provider. The documents go to this one provider only. Nothing is rolled
+        back when the service fails: the caller decides what to do with the error."""
+        self.ensure_one()
+        rec = self.sudo()
+        blocker = rec._documents_blocker(code)
+        if blocker:
+            raise ProviderError("%s: %s" % (rec.name, blocker))
+        impl = rec._impl()
+        if timeout:
+            impl.timeout = min(impl.timeout, int(timeout))
+        errors, outages = {}, {}
+        try:
+            return impl.read_document(system, user, files)
+        except ProviderUnavailable as exc:
+            errors[rec.name] = str(exc)
+            outages[rec.name] = exc.wait
+            raise
+        except Exception as exc:  # noqa: BLE001
+            errors[rec.name] = str(exc)
+            raise
+        finally:
+            rec._note_outcome(errors, outages)
+            purpose = self.env["ai.translation.purpose"].sudo().search([("code", "=", code)], limit=1)
+            self.env["ai.translation.usage"]._log(
+                self.env["ai.translation.watch"], [impl], False, len(files), purpose=purpose)
 
     def action_resume(self):
         """Use the provider again right away instead of waiting for the pause to end."""

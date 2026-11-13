@@ -282,3 +282,29 @@ the cross-checks, the cron with parallel groups, the dashboard figures and forec
 ## License
 
 AGPL-3.0, © Biricon IT Services GmbH. Contributions welcome.
+
+
+## Purposes, document reading, privacy switch
+
+Since 19.0.1.3.0 every provider has **purposes** (tags on the provider form, filterable in the list):
+
+| Purpose | Meaning |
+|---|---|
+| Translations | Used by translation and proofreading runs. **All providers that existed before keep exactly this purpose** (set by the migration); translation behaviour is unchanged. Runs only use providers with this purpose. |
+| Invoices - manual (button) | May read documents when a user presses a button (used by `account_bill_capture`). |
+| Invoices - automatic | May read documents in a background job (used by `account_bill_capture` in automatic mode; it only fills drafts). |
+| Other | Placeholder for other modules. |
+
+**Reading documents.** Providers of the kinds Anthropic, OpenAI-compatible and Google Gemini can read images and PDF
+files (`ChatProvider.read_document(system, user, files)` with `files=[{"mimetype", "data_b64", "name"}]`).
+Anthropic gets `document`/`image` blocks, Gemini `inlineData`, OpenAI-compatible services `image_url` data URIs; PDF
+goes as a file to OpenAI and OpenRouter, other services get the first 5 pages as PNG (needs `pdftoppm` from
+poppler-utils, no new Python dependency). All other kinds have `can_read_documents = False` and cannot get an
+invoice purpose. Usage, cost, pause and error series use the same bookkeeping as translations.
+
+**Privacy switch.** Invoices contain data of third parties. A provider that is not marked *Runs on own
+infrastructure* is only used for invoices when **Allow invoices to leave the server**
+(`allow_documents_external`, default off) is set on it. The check happens again right before every call.
+
+Upgrade note: after updating, existing providers show the purpose *Translations* only; add an invoice purpose to
+a provider that should read invoices. The tests of the new part are in `tests/test_documents.py` (mocked HTTP).

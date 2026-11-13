@@ -1,3 +1,4 @@
+from . import ai_translation_purpose
 from . import ai_translation_provider
 from . import ai_translation_glossary
 from . import ai_translation_watch

@@ -11,6 +11,7 @@ from odoo.exceptions import UserError, ValidationError
 from odoo.tools.safe_eval import safe_eval
 
 from .. import providers
+from .ai_translation_purpose import PURPOSE_TRANSLATE
 from .ai_translation_unit import BULK_MAX_ITEMS, BULK_TIMEOUT, OPEN_STATES
 
 SCAN_RESERVE_SECONDS = 5
@@ -53,7 +54,8 @@ class AiTranslationWatch(models.Model):
     confidential = fields.Boolean(help="Only providers marked as running on own infrastructure "
                                        "see the texts.")
     provider_ids = fields.Many2many("ai.translation.provider", string="Providers",
-                                    help="Empty = all active providers.")
+                                    domain="[('purpose_ids.code', '=', 'translate')]",
+                                    help="Empty = all active providers with the purpose 'Translations'.")
     mode = fields.Selection([
         ("missing", "Only missing translations"),
         ("outdated", "Missing and outdated translations"),
@@ -91,6 +93,7 @@ class AiTranslationWatch(models.Model):
              "probably drifted. Texts shorter than 15 characters are not checked.")
     arbiter_id = fields.Many2one(
         "ai.translation.provider", string="Arbiter", ondelete="set null",
+        domain="[('purpose_ids.code', '=', 'translate')]",
         help="A strong reviewer asked only when the normal vote stays split: it chooses between the two "
              "best candidates and settles the text only if it rates the choice 8 or better in accuracy "
              "and naturalness and finds no serious error. Leave empty for a human decision.")
@@ -188,11 +191,18 @@ class AiTranslationWatch(models.Model):
         per_group = BULK_MAX_ITEMS if self.bulk_chars else (self.batch_size or 10) * 3
         return per_group * (self._parallel_groups() if parallel else 1)
 
+    def _translation_pool(self):
+        """The providers a run of this rule may use: active ones with the purpose 'Translations'
+        (providers kept for other purposes, such as reading invoices, never translate)."""
+        self.ensure_one()
+        pool = self.provider_ids.filtered("active") or self.env["ai.translation.provider"].search([])
+        return pool._with_purpose(PURPOSE_TRANSLATE)
+
     def _pick_providers(self, respect_pause=True):
         """Return ``(translators, reviewers)`` as provider objects. Providers in a pause (quota,
         limit or outage) are left out unless ``respect_pause`` is False."""
         self.ensure_one()
-        pool = self.provider_ids.filtered("active") or self.env["ai.translation.provider"].search([])
+        pool = self._translation_pool()
         if respect_pause:
             pool = pool.filtered(lambda p: not p.is_paused)
         if self.confidential:
@@ -213,7 +223,7 @@ class AiTranslationWatch(models.Model):
     def _paused_providers(self):
         """Providers of this rule that are in a pause, for the dashboard."""
         self.ensure_one()
-        pool = self.provider_ids.filtered("active") or self.env["ai.translation.provider"].search([])
+        pool = self._translation_pool()
         return [{"name": p.name, "until": fields.Datetime.to_string(p.paused_until),
                  "reason": p.pause_reason or ""} for p in pool.filtered("is_paused")]
 
@@ -221,7 +231,8 @@ class AiTranslationWatch(models.Model):
         """The arbiter as provider object, or None when it is not set or not usable."""
         self.ensure_one()
         prov = self.arbiter_id
-        if not prov or not prov.active or prov.is_paused or (self.confidential and not prov.is_local):
+        if not prov or not prov.active or prov.is_paused or (self.confidential and not prov.is_local) \
+                or not prov._has_purpose(PURPOSE_TRANSLATE):
             return None
         impl = prov._impl()
         if (impl.needs_key and not impl.key) or not impl.can_review:

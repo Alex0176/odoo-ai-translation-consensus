@@ -2513,6 +2513,8 @@ msgstr "Übersetzungsglossar"
 
 #. module: ai_translation_consensus
 #: model_terms:ir.ui.view,arch_db:ai_translation_consensus.view_ai_translation_unit_search
+#: model:ai.translation.purpose,name:ai_translation_consensus.purpose_translate
+#: model_terms:ir.ui.view,arch_db:ai_translation_consensus.view_ai_translation_provider_search
 msgid "Translations"
 msgstr "Übersetzungen"
 
@@ -2843,8 +2845,8 @@ msgstr "Versuche"
 #. module: ai_translation_consensus
 #: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_unit__attempts
 msgid ""
-"How often the providers were asked again because this text got no "
-"usable proposal (bulk rules only)."
+"How often the providers were asked again because this text got no usable "
+"proposal (bulk rules only)."
 msgstr ""
 "Wie oft die Anbieter erneut gefragt wurden, weil dieser Text keinen "
 "brauchbaren Vorschlag bekam (nur Sammelregeln)."
@@ -2852,26 +2854,25 @@ msgstr ""
 #. module: ai_translation_consensus
 #: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_watch__bulk_chars
 msgid ""
-"0 = off: the texts of one record go to the providers in small groups "
-"of 'Texts per request', with the surrounding page text. Above 0 the "
-"texts of all records are put into one request per language until it "
-"holds about this many characters (20000 to 26000 works well, at most "
-"400 texts): fewer, larger requests, much faster for command line "
-"providers. The providers then see no page text, only a short label and"
-" the neighbouring texts. A text without a usable proposal is asked "
-"again later (twice at most), the rest of the request is kept. Set "
-"'Proposals processed per cron run' to 0 or a high number."
+"0 = off: the texts of one record go to the providers in small groups of "
+"'Texts per request', with the surrounding page text. Above 0 the texts of "
+"all records are put into one request per language until it holds about this "
+"many characters (20000 to 26000 works well, at most 400 texts): fewer, "
+"larger requests, much faster for command line providers. The providers then "
+"see no page text, only a short label and the neighbouring texts. A text "
+"without a usable proposal is asked again later (twice at most), the rest of "
+"the request is kept. Set 'Proposals processed per cron run' to 0 or a high "
+"number."
 msgstr ""
-"0 = aus: die Texte eines Datensatzes gehen in kleinen Gruppen zu je "
-"„Texte je Anfrage“ samt umgebendem Seitentext an die Anbieter. Über 0"
-" werden die Texte aller Datensätze je Sprache in eine Anfrage gepackt,"
-" bis sie etwa so viele Zeichen enthält (20000 bis 26000 bewähren sich,"
-" höchstens 400 Texte): weniger, größere Anfragen, bei Kommandozeilen-"
-"Anbietern deutlich schneller. Die Anbieter sehen dann keinen "
-"Seitentext, nur eine kurze Bezeichnung und die Nachbartexte. Ein Text "
-"ohne brauchbaren Vorschlag wird später noch einmal gefragt (höchstens "
-"zweimal), der Rest der Anfrage bleibt erhalten. „Vorschläge je Cron-"
-"Lauf“ auf 0 oder einen hohen Wert stellen."
+"0 = aus: die Texte eines Datensatzes gehen in kleinen Gruppen zu je „Texte "
+"je Anfrage“ samt umgebendem Seitentext an die Anbieter. Über 0 werden die "
+"Texte aller Datensätze je Sprache in eine Anfrage gepackt, bis sie etwa so "
+"viele Zeichen enthält (20000 bis 26000 bewähren sich, höchstens 400 Texte): "
+"weniger, größere Anfragen, bei Kommandozeilen-Anbietern deutlich schneller. "
+"Die Anbieter sehen dann keinen Seitentext, nur eine kurze Bezeichnung und "
+"die Nachbartexte. Ein Text ohne brauchbaren Vorschlag wird später noch "
+"einmal gefragt (höchstens zweimal), der Rest der Anfrage bleibt erhalten. "
+"„Vorschläge je Cron-Lauf“ auf 0 oder einen hohen Wert stellen."
 
 #. module: ai_translation_consensus
 #. odoo-python
@@ -3109,3 +3110,233 @@ msgstr "Kontingent von %s Anbietern gelesen."
 #: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.js:0
 msgid "No provider can report its usage."
 msgstr "Kein Anbieter kann sein Kontingent melden."
+
+#. module: ai_translation_consensus
+#. odoo-javascript
+#: code:addons/ai_translation_consensus/static/src/dashboard/dashboard.xml:0
+msgid "% used"
+msgstr "% verbraucht"
+
+#. module: ai_translation_consensus
+#. odoo-python
+#: code:addons/ai_translation_consensus/models/ai_translation_provider.py:0
+msgid ""
+"%(name)s (%(kind)s) cannot read documents, so it cannot get an invoice "
+"purpose."
+msgstr ""
+"%(name)s (%(kind)s) kann keine Dokumente lesen und deshalb keine Rechnungs-"
+"Tätigkeit erhalten."
+
+#. module: ai_translation_consensus
+#: model:ir.actions.server,name:ai_translation_consensus.ir_cron_ai_translation_usage_ir_actions_server
+msgid "AI Translation: read plan usage of the providers"
+msgstr "KI-Übersetzung: Tarifverbrauch der Anbieter lesen"
+
+#. module: ai_translation_consensus
+#: model:ir.model,name:ai_translation_consensus.model_ai_translation_purpose
+msgid "AI provider purpose"
+msgstr "Tätigkeit eines KI-Anbieters"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_provider__allow_documents_external
+msgid "Allow invoices to leave the server"
+msgstr "Rechnungen dürfen den Server verlassen"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_provider__can_read_documents
+msgid "Can Read Documents"
+msgstr "Kann Dokumente lesen"
+
+#. module: ai_translation_consensus
+#: model_terms:ir.ui.view,arch_db:ai_translation_consensus.view_ai_translation_provider_search
+msgid "Can read documents"
+msgstr "Kann Dokumente lesen"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_purpose__code
+msgid "Code"
+msgstr "Code"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_purpose__color
+msgid "Color"
+msgstr "Farbe"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_watch__provider_ids
+msgid "Empty = all active providers with the purpose 'Translations'."
+msgstr "Leer = alle aktiven Anbieter mit der Tätigkeit „Übersetzungen“."
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_usage__watch_id
+msgid "Empty for other uses, such as reading invoices."
+msgstr "Leer bei anderer Nutzung, etwa dem Lesen von Rechnungen."
+
+#. module: ai_translation_consensus
+#: model_terms:ir.ui.view,arch_db:ai_translation_consensus.view_ai_translation_provider_search
+msgid "Invoices"
+msgstr "Rechnungen"
+
+#. module: ai_translation_consensus
+#: model:ai.translation.purpose,name:ai_translation_consensus.purpose_invoice_auto
+#: model_terms:ir.ui.view,arch_db:ai_translation_consensus.view_ai_translation_provider_search
+msgid "Invoices - automatic"
+msgstr "Rechnungen – automatisch"
+
+#. module: ai_translation_consensus
+#: model_terms:ir.ui.view,arch_db:ai_translation_consensus.view_ai_translation_provider_search
+msgid "Invoices - manual"
+msgstr "Rechnungen – händisch"
+
+#. module: ai_translation_consensus
+#: model:ai.translation.purpose,name:ai_translation_consensus.purpose_invoice_manual
+msgid "Invoices - manual (button)"
+msgstr "Rechnungen – händisch (Knopfdruck)"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_provider__allow_documents_external
+msgid ""
+"Invoices contain data of third parties (suppliers, bank accounts, tax "
+"numbers). A provider that does not run on your own infrastructure only reads"
+" invoices when this is switched on."
+msgstr ""
+"Rechnungen enthalten Daten Dritter (Lieferanten, Bankkonten, UID-Nummern). "
+"Ein Anbieter, der nicht auf Ihrer eigenen Infrastruktur läuft, liest "
+"Rechnungen nur, wenn dies eingeschaltet ist."
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_purpose__is_document
+msgid "Is Document"
+msgstr "Sendet Dokumente"
+
+#. module: ai_translation_consensus
+#: model:ai.translation.purpose,name:ai_translation_consensus.purpose_other
+msgid "Other"
+msgstr "Sonstiges"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_provider__usage_json
+msgid ""
+"Plan usage read from the signed-in command line tool (Codex, Antigravity)."
+msgstr ""
+"Tarifverbrauch, gelesen vom angemeldeten Kommandozeilenwerkzeug (Codex, "
+"Antigravity)."
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_usage__purpose_id
+msgid "Purpose"
+msgstr "Tätigkeit"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_provider__purpose_ids
+msgid "Purposes"
+msgstr "Tätigkeiten"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_purpose__code
+msgid ""
+"Technical key the code looks for (translate, invoice_manual, invoice_auto, "
+"other)."
+msgstr ""
+"Technischer Schlüssel, den der Code sucht (translate, invoice_manual, "
+"invoice_auto, other)."
+
+#. module: ai_translation_consensus
+#: model:ir.model.constraint,message:ai_translation_consensus.constraint_ai_translation_purpose_code_uniq
+msgid "The purpose code must be unique."
+msgstr "Der Code der Tätigkeit muss eindeutig sein."
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_purpose__is_document
+msgid ""
+"The purpose sends documents (invoices) to the provider: it needs the ability"
+" to read documents and, when the provider is external, the data protection "
+"switch."
+msgstr ""
+"Die Tätigkeit sendet Dokumente (Rechnungen) an den Anbieter: er braucht die "
+"Fähigkeit, Dokumente zu lesen, und bei externen Anbietern den Datenschutz-"
+"Schalter."
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_provider__can_read_documents
+msgid "The service can read images and PDF files (multimodal)."
+msgstr "Der Dienst kann Bilder und PDF-Dateien lesen (multimodal)."
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_provider__usage_checked
+msgid "Usage Checked"
+msgstr "Verbrauch geprüft"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_provider__usage_error
+msgid "Usage Error"
+msgstr "Verbrauchsfehler"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_provider__usage_json
+msgid "Usage Json"
+msgstr "Verbrauch (JSON)"
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_usage__purpose_id
+msgid "What the provider was asked to do."
+msgstr "Was vom Anbieter verlangt wurde."
+
+#. module: ai_translation_consensus
+#: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_provider__purpose_ids
+msgid ""
+"What this provider may be used for. Translation runs only use providers with"
+" the purpose 'Translations'; invoices are only read by providers with an "
+"invoice purpose."
+msgstr ""
+"Wofür dieser Anbieter verwendet werden darf. Übersetzungsläufe nutzen nur "
+"Anbieter mit der Tätigkeit „Übersetzungen“; Rechnungen lesen nur Anbieter "
+"mit einer Rechnungs-Tätigkeit."
+
+#. module: ai_translation_consensus
+#. odoo-python
+#: code:addons/ai_translation_consensus/models/ai_translation_provider.py:0
+msgid "archived"
+msgstr "archiviert"
+
+#. module: ai_translation_consensus
+#. odoo-python
+#: code:addons/ai_translation_consensus/models/ai_translation_provider.py:0
+msgid "cannot read documents"
+msgstr "kann keine Dokumente lesen"
+
+#. module: ai_translation_consensus
+#. odoo-python
+#: code:addons/ai_translation_consensus/models/ai_translation_provider.py:0
+msgid "invoices may not leave the server (data protection switch is off)"
+msgstr ""
+"Rechnungen dürfen den Server nicht verlassen (Datenschutz-Schalter ist aus)"
+
+#. module: ai_translation_consensus
+#. odoo-python
+#: code:addons/ai_translation_consensus/models/ai_translation_provider.py:0
+msgid "no API key"
+msgstr "kein API-Schlüssel"
+
+#. module: ai_translation_consensus
+#. odoo-python
+#: code:addons/ai_translation_consensus/models/ai_translation_provider.py:0
+msgid "paused until %s (%s)"
+msgstr "pausiert bis %s (%s)"
+
+#. module: ai_translation_consensus
+#. odoo-python
+#: code:addons/ai_translation_consensus/models/ai_translation_provider.py:0
+msgid "purpose not set"
+msgstr "Tätigkeit nicht gesetzt"
+
+#. module: ai_translation_consensus
+#: model_terms:ir.ui.view,arch_db:ai_translation_consensus.view_ai_translation_provider_form
+msgid ""
+"Invoices contain data of third parties (suppliers, bank accounts, tax numbers).\n"
+"                                An external provider only reads invoices when \"Allow invoices to leave the\n"
+"                                server\" is switched on."
+msgstr ""
+"Rechnungen enthalten Daten Dritter (Lieferanten, Bankkonten, UID-Nummern).\n"
+"                                Ein externer Anbieter liest Rechnungen nur, wenn „Rechnungen dürfen den\n"
+"                                Server verlassen“ eingeschaltet ist."

@@ -12,7 +12,7 @@ services can be mixed. Nothing is written without a rule, and by default a
 human approves every proposal. A start wizard explains the steps and creates
 the first rule.
 """,
-    "version": "19.0.1.2.1",
+    "version": "19.0.1.3.0",
     "category": "Productivity/Translation",
     "author": "Biricon IT Services GmbH",
     "website": "https://github.com/Alex0176/odoo-ai-translation-consensus",
@@ -30,6 +30,7 @@ the first rule.
         "views/ai_translation_usage_views.xml",
         "views/dashboard_views.xml",
         "views/menus.xml",
+        "data/ai_translation_purpose_data.xml",
         "data/ai_translation_provider_data.xml",
         "data/ir_cron_data.xml",
         "data/discuss_channel_data.xml",

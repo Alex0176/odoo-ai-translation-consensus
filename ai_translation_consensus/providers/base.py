@@ -5,10 +5,14 @@ import time
 
 from ..engine import prompts
 from ..engine.languages import lang_name
+from . import documents
 from .http import ProviderError, throttle
 
 _USAGE_LOCK = threading.Lock()
 _LOCAL = threading.local()
+
+
+DOCUMENT_TOKENS = 1500    # rough token count of one page or image when a service reports none
 
 
 def estimate_tokens(text):
@@ -23,6 +27,7 @@ class BaseProvider:
     kind = ""
     label = ""
     can_review = False
+    can_read_documents = False      # multimodal: reads images and PDF files (``read_document``)
     needs_key = True
     local_by_default = False
     defaults = {}
@@ -46,6 +51,10 @@ class BaseProvider:
 
     def review(self, kind, src, tgt, items, glossary=(), instructions="", page_context="", round_no=1):
         raise ProviderError("%s cannot review" % self.label)
+
+    def read_document(self, system, user, files):
+        """Answer ``user`` about the documents in ``files`` ``[{'mimetype', 'data_b64', 'name'}]``."""
+        raise ProviderError("%s cannot read documents" % self.label)
 
     def ping(self):
         res = self.generate("translate", "de_DE", "en_GB",
@@ -95,12 +104,15 @@ class ChatProvider(BaseProvider):
     def _complete(self, system, user):
         raise NotImplementedError
 
-    def _ask(self, system, user):
-        """``_complete`` plus bookkeeping of calls, time and tokens."""
+    def _complete_document(self, system, user, files):
+        raise ProviderError("%s cannot read documents" % self.label)
+
+    def _ask(self, system, user, files=None):
+        """``_complete`` (with ``files``: ``_complete_document``) plus bookkeeping of calls, time and tokens."""
         _LOCAL.tokens = None
         start = time.monotonic()
         try:
-            text = self._complete(system, user)
+            text = self._complete_document(system, user, files) if files else self._complete(system, user)
         except Exception:
             self._record(calls=1, errors=1, seconds=time.monotonic() - start)
             raise
@@ -109,9 +121,16 @@ class ChatProvider(BaseProvider):
         if reported:
             self._record(calls=1, input_tokens=reported[0], output_tokens=reported[1], seconds=seconds)
         else:
-            self._record(calls=1, input_tokens=estimate_tokens(system + user),
+            self._record(calls=1, input_tokens=estimate_tokens(system + user) + DOCUMENT_TOKENS * len(files or ()),
                          output_tokens=estimate_tokens(text), seconds=seconds, estimated=True)
         return text
+
+    def read_document(self, system, user, files):
+        if not self.can_read_documents:
+            raise ProviderError("%s cannot read documents" % self.label)
+        files = documents.check_files(files)
+        self._throttle()
+        return self._ask(system, user, files)
 
     def generate(self, kind, src, tgt, items, glossary=(), instructions="", page_context=""):
         system, user = prompts.generate_prompt(
