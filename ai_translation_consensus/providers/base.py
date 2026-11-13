@@ -32,6 +32,13 @@ class BaseProvider:
     local_by_default = False
     defaults = {}
 
+    @classmethod
+    def documents_capable(cls, cfg):
+        """Whether a provider of this kind configured with ``cfg`` can read documents.
+
+        Usually a property of the kind; the command line kind depends on the command (``{images}``)."""
+        return bool(cls.can_read_documents)
+
     def __init__(self, cfg):
         self.cfg = cfg
         self.name = cfg.get("name") or self.kind
@@ -126,7 +133,7 @@ class ChatProvider(BaseProvider):
         return text
 
     def read_document(self, system, user, files):
-        if not self.can_read_documents:
+        if not self.documents_capable(self.cfg):
             raise ProviderError("%s cannot read documents" % self.label)
         files = documents.check_files(files)
         self._throttle()

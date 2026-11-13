@@ -16,6 +16,7 @@ from .http import ProviderError
 
 IMAGE_TYPES = ("image/jpeg", "image/png", "image/webp", "image/gif")
 PDF_TYPE = "application/pdf"
+EXTENSIONS = {"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp", "image/gif": ".gif"}
 DOCUMENT_TYPES = IMAGE_TYPES + (PDF_TYPE,)
 MAX_FILES = 5
 PDF_PAGES = 5            # pages of a PDF sent as images

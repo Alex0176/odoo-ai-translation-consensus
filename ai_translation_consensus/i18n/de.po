@@ -710,10 +710,16 @@ msgstr "Befehl"
 #: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_provider__command
 msgid ""
 "Command line for the 'local command' kind. The prompt is passed on stdin, "
-"the answer is read from stdout."
+"the answer is read from stdout. {images} is replaced by image files of the "
+"documents (PDF pages as PNG); only then the tool can read invoices. Example: "
+"codex exec --sandbox read-only --skip-git-repo-check --ephemeral - -i "
+"{images}"
 msgstr ""
-"Kommandozeile für die Art 'Lokaler Befehl'. Die Anfrage geht über stdin, die"
-" Antwort wird von stdout gelesen."
+"Kommandozeile für die Art 'Lokaler Befehl'. Die Anfrage geht über stdin, die "
+"Antwort wird von stdout gelesen. {images} wird durch Bilddateien der "
+"Dokumente ersetzt (PDF-Seiten als PNG); nur dann kann das Werkzeug "
+"Rechnungen lesen. Beispiel: codex exec --sandbox read-only "
+"--skip-git-repo-check --ephemeral - -i {images}"
 
 #. module: ai_translation_consensus
 #: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_watch__completion_notified
@@ -3259,8 +3265,12 @@ msgstr ""
 
 #. module: ai_translation_consensus
 #: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_provider__can_read_documents
-msgid "The service can read images and PDF files (multimodal)."
-msgstr "Der Dienst kann Bilder und PDF-Dateien lesen (multimodal)."
+msgid ""
+"The service can read images and PDF files (multimodal). A command line tool "
+"can when its command contains {images}."
+msgstr ""
+"Der Dienst kann Bilder und PDF-Dateien lesen (multimodal). Ein "
+"Kommandozeilenwerkzeug kann es, wenn sein Befehl {images} enthält."
 
 #. module: ai_translation_consensus
 #: model:ir.model.fields,field_description:ai_translation_consensus.field_ai_translation_provider__usage_checked

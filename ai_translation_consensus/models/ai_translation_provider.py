@@ -38,7 +38,10 @@ class AiTranslationProvider(models.Model):
                               help="Name of an environment variable of the Odoo process that "
                                    "holds the key. Used when the key field is empty.")
     command = fields.Char(help="Command line for the 'local command' kind. The prompt is passed "
-                               "on stdin, the answer is read from stdout.")
+                               "on stdin, the answer is read from stdout. {images} is replaced by "
+                               "image files of the documents (PDF pages as PNG); only then the tool can "
+                               "read invoices. Example: codex exec --sandbox read-only "
+                               "--skip-git-repo-check --ephemeral - -i {images}")
     extra_json = fields.Text(string="Extra options (JSON)",
                              help='Optional, e.g. {"body": {"temperature": 0.2}, "headers": {}}.')
     role = fields.Selection([
@@ -81,7 +84,8 @@ class AiTranslationProvider(models.Model):
         help="What this provider may be used for. Translation runs only use providers with the purpose "
              "'Translations'; invoices are only read by providers with an invoice purpose.")
     can_read_documents = fields.Boolean(compute="_compute_kind_flags", search="_search_can_read_documents",
-                                        help="The service can read images and PDF files (multimodal).")
+                                        help="The service can read images and PDF files (multimodal). "
+                                             "A command line tool can when its command contains {images}.")
     allow_documents_external = fields.Boolean(
         string="Allow invoices to leave the server", copy=False,
         help="Invoices contain data of third parties (suppliers, bank accounts, tax numbers). A provider "
@@ -99,13 +103,13 @@ class AiTranslationProvider(models.Model):
         for rec in self:
             rec.is_paused = bool(rec.paused_until and rec.paused_until > now)
 
-    @api.depends("kind")
+    @api.depends("kind", "command")
     def _compute_kind_flags(self):
         for rec in self:
             cls = providers.REGISTRY.get(rec.kind)
             rec.needs_key = bool(cls and cls.needs_key)
             rec.can_review = bool(cls and cls.can_review)
-            rec.can_read_documents = bool(cls and cls.can_read_documents)
+            rec.can_read_documents = bool(cls and cls.documents_capable({"command": rec.command}))
 
     def _search_can_read_documents(self, operator, value):
         if operator in ("in", "not in"):
@@ -116,13 +120,17 @@ class AiTranslationProvider(models.Model):
         else:
             raise ValueError("unsupported operator %r" % operator)
         kinds = [k for k, cls in providers.REGISTRY.items() if cls.can_read_documents]
-        return [("kind", "in" if positive else "not in", kinds)]
+        if positive:
+            return ["|", ("kind", "in", kinds),
+                    "&", ("kind", "=", "command"), ("command", "ilike", providers.LocalCommand.IMAGES)]
+        return [("kind", "not in", kinds),
+                "!", "&", ("kind", "=", "command"), ("command", "ilike", providers.LocalCommand.IMAGES)]
 
-    @api.constrains("purpose_ids", "kind")
+    @api.constrains("purpose_ids", "kind", "command")
     def _check_document_purposes(self):
         for rec in self:
             cls = providers.REGISTRY.get(rec.kind)
-            if rec.purpose_ids.filtered("is_document") and not (cls and cls.can_read_documents):
+            if rec.purpose_ids.filtered("is_document") and not rec.can_read_documents:
                 raise ValidationError(_(
                     "%(name)s (%(kind)s) cannot read documents, so it cannot get an invoice purpose.",
                     name=rec.name, kind=cls.label if cls else rec.kind))

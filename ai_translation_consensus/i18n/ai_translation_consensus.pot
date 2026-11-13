@@ -638,7 +638,10 @@ msgstr ""
 #: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_provider__command
 msgid ""
 "Command line for the 'local command' kind. The prompt is passed on stdin, "
-"the answer is read from stdout."
+"the answer is read from stdout. {images} is replaced by image files of the "
+"documents (PDF pages as PNG); only then the tool can read invoices. Example: "
+"codex exec --sandbox read-only --skip-git-repo-check --ephemeral - -i "
+"{images}"
 msgstr ""
 
 #. module: ai_translation_consensus
@@ -3060,7 +3063,9 @@ msgstr ""
 
 #. module: ai_translation_consensus
 #: model:ir.model.fields,help:ai_translation_consensus.field_ai_translation_provider__can_read_documents
-msgid "The service can read images and PDF files (multimodal)."
+msgid ""
+"The service can read images and PDF files (multimodal). A command line tool "
+"can when its command contains {images}."
 msgstr ""
 
 #. module: ai_translation_consensus

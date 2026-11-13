@@ -108,7 +108,7 @@ except the arbiter.
 | Anthropic | yes | yes | Claude |
 | Google Gemini | yes | yes | |
 | Cohere | yes | yes | |
-| Local command | yes | yes | `claude -p`, `codex exec`, Antigravity `agy -p` (preset, prompt passed as argument), any CLI that reads stdin and prints the answer |
+| Local command | yes | yes (with `{images}`, see below) | `claude -p`, `codex exec`, Antigravity `agy -p` (preset, prompt passed as argument), any CLI that reads stdin and prints the answer |
 | DeepL, Google Translate, Azure Translator | yes | no | |
 | LibreTranslate, MyMemory, Lingva | yes | no | |
 
@@ -240,6 +240,18 @@ decision, queued or failed, per language and per provider, and refreshes itself 
   only providers flagged as running on your own infrastructure see it.
 * API keys live in an administrator-only field, or in an environment variable referenced by
   name. They are masked in error messages and sent in headers (MyMemory's optional key is the one exception: its API only takes it as a query parameter).
+* **Invoices with a command line tool.** A *local command* provider can read documents when its
+  command contains the placeholder `{images}`. For every document a file is written to a temporary
+  directory (PNG/JPEG as they are, a PDF as PNG pages with `pdftoppm -r 150`, at most 5 pages per PDF,
+  `poppler-utils` required) and `{images}` is replaced by the file paths, one argument each
+  (`--image={images}` is repeated per path). The directory is deleted after the call. The prompt
+  still goes through stdin. Tested template for Codex CLI (`codex exec --help`, 0.166.0):
+  `codex exec --sandbox read-only --skip-git-repo-check --ephemeral - -i {images}`.
+  The `-` (prompt from stdin) comes before `-i` because `-i` accepts any number of values.
+  Without `{images}` the provider cannot get an invoice purpose. As such a tool is not on
+  your own infrastructure, the switch *Allow invoices to leave the server* is needed, and the
+  system parameter `allow_command` stays a precondition. A text-only request drops `{images}`
+  (and a preceding `-i`/`--image`) from the command.
 * The *local command* kind executes a program. It is disabled until the system parameter
   `ai_translation_consensus.allow_command` is set to `True`. The command is split without
   a shell and runs in an empty temporary directory.

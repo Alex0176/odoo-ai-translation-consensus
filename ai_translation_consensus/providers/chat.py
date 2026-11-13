@@ -1,6 +1,9 @@
 # Copyright 2026 Biricon IT Services GmbH
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
 """Chat models: OpenAI-compatible APIs, Anthropic, Google Gemini, Cohere, local CLI."""
+import base64
+import binascii
+import os
 import re
 import shlex
 import shutil
@@ -207,6 +210,7 @@ _CLI_OUTAGE = re.compile(
     r"authentication|unauthorized|log ?in", re.I)
 
 
+CMD_PDF_DPI = 150             # PDF pages handed to a command line tool
 LIFT_MEMORY_LIMIT = 'ulimit -S -v "$(ulimit -H -v)" 2>/dev/null; exec "$@"'
 
 
@@ -228,6 +232,15 @@ class LocalCommand(ChatProvider):
     on the server (Claude Code, Ollama, ...). The arguments are split without a
     shell. A tool that takes the prompt as an argument instead (Antigravity ``agy -p``)
     gets it in place of ``{prompt}`` inside an argument (it may carry a fixed lead-in text); stdin stays empty then.
+    A tool that can look at images gets documents through ``{images}``: every file
+    is written to a temporary directory (PDF pages as PNG, see ``documents.pdf_to_png``) and the
+    placeholder is replaced by the file paths, one argument each (an argument that only contains the
+    placeholder is replaced by all paths; ``--image={images}`` is repeated per path). Example for Codex
+    (prompt on stdin, ``-`` before ``-i`` because ``-i`` takes any number of values)::
+
+        codex exec --sandbox read-only --skip-git-repo-check --ephemeral - -i {images}
+
+    A command without ``{images}`` cannot read documents.
     Because it executes a program, it only works when the system
     parameter ``ai_translation_consensus.allow_command`` is ``True``.
     """
@@ -237,8 +250,63 @@ class LocalCommand(ChatProvider):
     needs_key = False
     local_by_default = False
     defaults = {}
+    IMAGES = "{images}"
+    IMAGE_FLAGS = ("-i", "--image")
+
+    @classmethod
+    def documents_capable(cls, cfg):
+        return cls.IMAGES in (cfg.get("command") or "")
 
     def _complete(self, system, user):
+        return self._run(system, user, None)
+
+    def _complete_document(self, system, user, files):
+        return self._run(system, user, files)
+
+    def _expand_images(self, cmd, paths):
+        """``cmd`` with the placeholder replaced by ``paths`` (own temporary files); no shell is involved."""
+        out = []
+        for arg in cmd:
+            if self.IMAGES not in arg:
+                out.append(arg)
+            elif arg == self.IMAGES:
+                out.extend(paths)
+            else:
+                out.extend(arg.replace(self.IMAGES, path) for path in paths)
+        return out
+
+    def _drop_images(self, cmd):
+        """Text request with a command made for documents: leave out the placeholder (and its flag)."""
+        out = []
+        for arg in cmd:
+            if arg == self.IMAGES:
+                if out and out[-1] in self.IMAGE_FLAGS:
+                    out.pop()
+            elif self.IMAGES not in arg:
+                out.append(arg)
+        return out
+
+    def _write_images(self, tmp, files):
+        """Paths of image files in ``tmp`` for the documents (PDF pages as PNG at 150 dpi)."""
+        paths = []
+        for n, item in enumerate(files, 1):
+            if item["mimetype"] == documents.PDF_TYPE:
+                pages = documents.pdf_to_png(item["data_b64"], pages=documents.PDF_PAGES, dpi=CMD_PDF_DPI)
+                blobs = [(".png", base64.b64decode(page)) for page in pages]
+            else:
+                try:
+                    raw = base64.b64decode(item["data_b64"], validate=True)
+                except (binascii.Error, ValueError):
+                    raise ProviderError("the document is not valid base64")
+                blobs = [(documents.EXTENSIONS.get(item["mimetype"], ".bin"), raw)]
+            for page_no, (ext, raw) in enumerate(blobs, 1):
+                path = os.path.join(tmp, "doc%02d-%02d%s" % (n, page_no, ext))
+                with open(path, "wb") as handle:
+                    handle.write(raw)
+                paths.append(path)
+        return paths
+
+    def _run(self, system, user, files):
         if not self.cfg.get("allow_command"):
             raise ProviderError("command providers are disabled "
                                 "(system parameter ai_translation_consensus.allow_command)")
@@ -247,15 +315,21 @@ class LocalCommand(ChatProvider):
             raise ProviderError("no command configured")
         if not shutil.which(cmd[0]):
             raise ProviderError("command not found: %s" % cmd[0])
+        if files and not any(self.IMAGES in arg for arg in cmd):
+            raise ProviderError("the command has no %s placeholder, so it cannot read documents" % self.IMAGES)
         prompt = system + "\n\n" + user
         as_argument = any("{prompt}" in arg for arg in cmd)
-        if as_argument:
-            cmd = [arg.replace("{prompt}", prompt) for arg in cmd]
-        # Odoo workers cap the address space (limit_memory_hard); Go based tools such as agy
-        # reserve far more virtual memory and die with "out of memory", so lift the soft limit.
-        cmd = ["sh", "-c", LIFT_MEMORY_LIMIT, "sh"] + cmd
         try:
             with tempfile.TemporaryDirectory() as cwd:
+                if files:
+                    cmd = self._expand_images(cmd, self._write_images(cwd, files))
+                else:
+                    cmd = self._drop_images(cmd)
+                if as_argument:
+                    cmd = [arg.replace("{prompt}", prompt) for arg in cmd]
+                # Odoo workers cap the address space (limit_memory_hard); Go based tools such as agy
+                # reserve far more virtual memory and die with "out of memory", so lift the soft limit.
+                cmd = ["sh", "-c", LIFT_MEMORY_LIMIT, "sh"] + cmd
                 proc = subprocess.run(cmd, input=None if as_argument else prompt,
                                       stdin=subprocess.DEVNULL if as_argument else None,
                                       capture_output=True, text=True,
