@@ -108,7 +108,7 @@ except the arbiter.
 | Anthropic | yes | yes | Claude |
 | Google Gemini | yes | yes | |
 | Cohere | yes | yes | |
-| Local command | yes | yes (with `{images}`, see below) | `claude -p`, `codex exec`, Antigravity `agy -p` (preset, prompt passed as argument), any CLI that reads stdin and prints the answer |
+| Local command | yes | yes (with `{images}`, see below) | `claude -p`, `codex exec`, Antigravity `agy -p` (preset, prompt passed as argument), Gemini CLI `gemini -p ... --approval-mode plan` (preset, prompt on stdin), any CLI that reads stdin and prints the answer |
 | DeepL, Google Translate, Azure Translator | yes | no | |
 | LibreTranslate, MyMemory, Lingva | yes | no | |
 
@@ -244,7 +244,10 @@ decision, queued or failed, per language and per provider, and refreshes itself 
   command contains the placeholder `{images}`. For every document a file is written to a temporary
   directory (PNG/JPEG as they are, a PDF as PNG pages with `pdftoppm -r 150`, at most 5 pages per PDF,
   `poppler-utils` required) and `{images}` is replaced by the file paths, one argument each
-  (`--image={images}` is repeated per path). The directory is deleted after the call. The prompt
+  (`--image={images}` is repeated per path). Tools without an image option (Claude Code, Gemini
+  CLI) take `{image_paths}` instead: all paths inside one argument, separated by spaces, usually in an
+  instruction such as `"...[[ The pages are these files, read them first: {image_paths}]]"`; the part
+  in `[[ ]]` is left out for plain text requests. The directory is deleted after the call. The prompt
   still goes through stdin. Tested template for Codex CLI (`codex exec --help`, 0.166.0):
   `codex exec --sandbox read-only --skip-git-repo-check --ephemeral - -i {images}`.
   The `-` (prompt from stdin) comes before `-i` because `-i` accepts any number of values.

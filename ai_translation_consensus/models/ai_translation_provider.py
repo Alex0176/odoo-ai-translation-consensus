@@ -122,9 +122,13 @@ class AiTranslationProvider(models.Model):
         kinds = [k for k, cls in providers.REGISTRY.items() if cls.can_read_documents]
         if positive:
             return ["|", ("kind", "in", kinds),
-                    "&", ("kind", "=", "command"), ("command", "ilike", providers.LocalCommand.IMAGES)]
+                    "&", ("kind", "=", "command"),
+                    "|", ("command", "ilike", providers.LocalCommand.IMAGES),
+                    ("command", "ilike", providers.LocalCommand.IMAGE_PATHS)]
         return [("kind", "not in", kinds),
-                "!", "&", ("kind", "=", "command"), ("command", "ilike", providers.LocalCommand.IMAGES)]
+                "!", "&", ("kind", "=", "command"),
+                "|", ("command", "ilike", providers.LocalCommand.IMAGES),
+                ("command", "ilike", providers.LocalCommand.IMAGE_PATHS)]
 
     @api.constrains("purpose_ids", "kind", "command")
     def _check_document_purposes(self):

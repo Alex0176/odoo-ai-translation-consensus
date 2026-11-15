@@ -252,10 +252,17 @@ class LocalCommand(ChatProvider):
     defaults = {}
     IMAGES = "{images}"
     IMAGE_FLAGS = ("-i", "--image")
+    #: For tools without an image option (Claude Code, Gemini CLI): all paths inside ONE argument,
+    #: separated by spaces - typically in an instruction such as "read these files first: {image_paths}".
+    IMAGE_PATHS = "{image_paths}"
+    #: ``[[ ... ]]`` inside an argument is only kept for document requests (brackets removed);
+    #: for a plain text request the whole part is left out.
+    OPTIONAL = re.compile(r"\[\[(.*?)\]\]", re.S)
 
     @classmethod
     def documents_capable(cls, cfg):
-        return cls.IMAGES in (cfg.get("command") or "")
+        command = cfg.get("command") or ""
+        return cls.IMAGES in command or cls.IMAGE_PATHS in command
 
     def _complete(self, system, user):
         return self._run(system, user, None)
@@ -267,6 +274,9 @@ class LocalCommand(ChatProvider):
         """``cmd`` with the placeholder replaced by ``paths`` (own temporary files); no shell is involved."""
         out = []
         for arg in cmd:
+            arg = self.OPTIONAL.sub(lambda m: m.group(1), arg)
+            if self.IMAGE_PATHS in arg:
+                arg = arg.replace(self.IMAGE_PATHS, " ".join(paths))
             if self.IMAGES not in arg:
                 out.append(arg)
             elif arg == self.IMAGES:
@@ -279,6 +289,7 @@ class LocalCommand(ChatProvider):
         """Text request with a command made for documents: leave out the placeholder (and its flag)."""
         out = []
         for arg in cmd:
+            arg = self.OPTIONAL.sub("", arg).replace(self.IMAGE_PATHS, "")
             if arg == self.IMAGES:
                 if out and out[-1] in self.IMAGE_FLAGS:
                     out.pop()
@@ -315,8 +326,9 @@ class LocalCommand(ChatProvider):
             raise ProviderError("no command configured")
         if not shutil.which(cmd[0]):
             raise ProviderError("command not found: %s" % cmd[0])
-        if files and not any(self.IMAGES in arg for arg in cmd):
-            raise ProviderError("the command has no %s placeholder, so it cannot read documents" % self.IMAGES)
+        if files and not any(self.IMAGES in arg or self.IMAGE_PATHS in arg for arg in cmd):
+            raise ProviderError("the command has no %s or %s placeholder, so it cannot read documents"
+                                % (self.IMAGES, self.IMAGE_PATHS))
         prompt = system + "\n\n" + user
         as_argument = any("{prompt}" in arg for arg in cmd)
         try:

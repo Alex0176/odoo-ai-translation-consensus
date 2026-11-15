@@ -77,6 +77,26 @@ class TestCommandDocuments(BaseCase):
         self.assertEqual(len(out["argv"]), 2)
         self.assertTrue(all(a.startswith("--image=/") for a in out["argv"]))
 
+    def test_image_paths_fill_one_argument(self):
+        """Tools without an image option get all paths inside one argument (an instruction)."""
+        cls = providers.LocalCommand
+        self.assertTrue(cls.documents_capable({"command": 'claude -p --tools Read --append-system-prompt "x {image_paths}"'}))
+        out = self.read(dummy("--note", "lead[[ read: {image_paths}]] end"),
+                        [file("image/png", PNG), file("image/jpeg", JPG)])
+        self.assertEqual(len(out["argv"]), 2)
+        note = out["argv"][1]
+        self.assertTrue(note.startswith("lead read: /") and note.endswith(" end"))
+        self.assertNotIn("[[", note)
+        paths = note[len("lead read: "):-len(" end")].split(" ")
+        self.assertEqual(len(paths), 2)
+        self.assertTrue(all(os.path.dirname(p) == out["cwd"] for p in paths))
+        self.assertEqual(out["exists"], [])   # the dummy only checks plain path arguments
+
+    def test_optional_part_is_left_out_for_text(self):
+        impl = self.provider(dummy("--note", "lead[[ read: {image_paths}]] end", "{image_paths}"))
+        out = json.loads(impl._complete("sys", "user"))
+        self.assertEqual(out["argv"], ["--note", "lead end", ""])
+
     def test_pdf_pages_become_png_and_are_limited(self):
         out = self.read(dummy("{images}"), [file("application/pdf", make_pdf(7))])
         self.assertEqual(len(out["argv"]), documents.PDF_PAGES)
