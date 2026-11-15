@@ -29,10 +29,10 @@
         <field name="active" eval="False"/>
         <field name="sequence">12</field>
         <field name="kind">command</field>
-        <field name="command">claude -p --tools "" --no-session-persistence</field>
+        <field name="command">claude -p --tools "[[Read]]" --no-session-persistence --append-system-prompt "[[The pages of the document are these image files, read every one with the Read tool before answering: {image_paths}]]"</field>
         <field name="role">both</field>
         <field name="is_local" eval="False"/>
-        <field name="note">Uses a signed-in command line tool, no key stored here. Needs the system parameter ai_translation_consensus.allow_command = True. Set the command line below.</field>
+        <field name="note">Uses a signed-in command line tool, no key stored here. Needs the system parameter ai_translation_consensus.allow_command = True. Set the command line below. For text requests the parts in [[ ]] are left out, so the tool runs without any tools (--tools ""); for documents (invoices) it gets the Read tool only and the file names ({image_paths}) - in non-interactive mode Read is refused outside the temporary directory.</field>
     </record>
     <record id="provider_antigravity_cli" model="ai.translation.provider">
         <field name="name">Antigravity CLI (signed-in)</field>
@@ -43,16 +43,6 @@
         <field name="role">both</field>
         <field name="is_local" eval="False"/>
         <field name="note">Google's successor of the Gemini CLI, signed in as the Odoo system user (agy, then log in once). The prompt is passed as an argument ({prompt}). --mode plan keeps the tools off; without it agy tries to run commands and returns nothing in headless mode, and --dangerously-skip-permissions must not be used on foreign website text. Needs the system parameter ai_translation_consensus.allow_command = True. Give the full path to agy if it is not on the service's PATH.</field>
-    </record>
-    <record id="provider_claude_cli_documents" model="ai.translation.provider">
-        <field name="name">Claude Code CLI - documents (signed-in)</field>
-        <field name="active" eval="False"/>
-        <field name="sequence">12</field>
-        <field name="kind">command</field>
-        <field name="command">claude -p --tools "Read" --no-session-persistence --append-system-prompt "Answer directly with the requested JSON only.[[ The pages of the document are these image files, read every one with the Read tool before answering: {image_paths}]]"</field>
-        <field name="role">both</field>
-        <field name="is_local" eval="False"/>
-        <field name="note">Claude Code reading documents (invoices): the pages are written as image files into an empty temporary directory and named in the instruction ({image_paths}); the only tool is Read, which in non-interactive mode is refused outside that directory. Keep the plain "Claude Code CLI" entry (no tools at all) for translations of foreign website text. Needs the system parameter ai_translation_consensus.allow_command = True and, for invoices, "Allow invoices to leave the server". Give the full path to claude if it is not on the service's PATH.</field>
     </record>
     <record id="provider_gemini_cli" model="ai.translation.provider">
         <field name="name">Gemini CLI (signed-in)</field>
