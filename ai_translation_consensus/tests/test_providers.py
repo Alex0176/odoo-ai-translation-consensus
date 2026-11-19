@@ -410,3 +410,46 @@ class TestPlanUsage(BaseCase):
             "secondary": {"usedPercent": 100, "windowDurationMins": 10080, "resetsAt": 1794682108}}})
         self.assertEqual(until(codex["windows"], "", now)[0], "2026-11-14 18:48:28")   # the later one
 
+
+
+@tagged("post_install", "-at_install")
+class TestCommandSlots(BaseCase):
+    """Command line tools are limited per host, whatever number of threads asks."""
+
+    def test_never_more_than_the_slots_at_once(self):
+        import tempfile
+        import time
+        from ..providers import chat
+        running, highest, lock = [0], [0], threading.Lock()
+
+        def work(directory):
+            with chat.command_slot(slots=2, directory=directory):
+                with lock:
+                    running[0] += 1
+                    highest[0] = max(highest[0], running[0])
+                time.sleep(0.15)
+                with lock:
+                    running[0] -= 1
+
+        with tempfile.TemporaryDirectory() as directory:
+            threads = [threading.Thread(target=work, args=(directory,)) for _i in range(7)]
+            for thread in threads:
+                thread.start()
+            for thread in threads:
+                thread.join(timeout=30)
+            self.assertFalse(any(thread.is_alive() for thread in threads))
+            self.assertEqual(highest[0], 2)
+            # the places are free again afterwards
+            with chat.command_slot(slots=2, directory=directory):
+                pass
+
+    def test_a_failing_command_frees_its_place(self):
+        import tempfile
+        from ..providers import chat
+        with tempfile.TemporaryDirectory() as directory:
+            for _i in range(3):
+                with self.assertRaises(ValueError):
+                    with chat.command_slot(slots=1, directory=directory):
+                        raise ValueError("boom")
+            with chat.command_slot(slots=1, directory=directory):
+                pass

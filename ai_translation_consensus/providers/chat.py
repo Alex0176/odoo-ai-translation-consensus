@@ -3,18 +3,62 @@
 """Chat models: OpenAI-compatible APIs, Anthropic, Google Gemini, Cohere, local CLI."""
 import base64
 import binascii
+import contextlib
+import fcntl
 import os
 import re
 import shlex
 import shutil
 import subprocess
 import tempfile
+import time
 
 from urllib.parse import urlparse
 
 from . import documents
 from .base import ChatProvider
 from .http import ProviderError, ProviderUnavailable, call
+
+# How many command line tools may run at the same time ON THIS HOST, over all Odoo processes.
+# The engine asks many providers in parallel threads, in every worker and in the cron process; a
+# command line assistant is a full program of its own (several hundred megabytes each, and the
+# memory limit of the worker is lifted for it). Without a limit a queue of translations starts a
+# dozen of them at once and the kernel kills the Odoo service for lack of memory.
+COMMAND_SLOTS = max(1, int(os.environ.get("AI_TRANSLATION_COMMAND_SLOTS") or 2))
+SLOT_DIR = os.path.join(tempfile.gettempdir(), "ai_translation_consensus_slots")
+
+
+@contextlib.contextmanager
+def command_slot(slots=None, directory=None):
+    """Wait for one of the ``slots`` places and hold it while a command runs.
+
+    The places are lock files, so the limit holds across threads and across processes. Waiting is
+    not an error and does not count against the time limit of the command: the call simply starts
+    later.
+    """
+    slots = slots or COMMAND_SLOTS
+    directory = directory or SLOT_DIR
+    os.makedirs(directory, mode=0o700, exist_ok=True)
+    handles = [open(os.path.join(directory, "slot%d.lock" % number), "a") for number in range(slots)]
+    held = None
+    try:
+        while held is None:
+            for handle in handles:
+                try:
+                    fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                except OSError:
+                    continue
+                held = handle
+                break
+            else:
+                time.sleep(0.5)
+        yield
+    finally:
+        if held is not None:
+            fcntl.flock(held, fcntl.LOCK_UN)
+        for handle in handles:
+            handle.close()
+
 
 
 class OpenAICompatible(ChatProvider):
@@ -342,10 +386,11 @@ class LocalCommand(ChatProvider):
                 # Odoo workers cap the address space (limit_memory_hard); Go based tools such as agy
                 # reserve far more virtual memory and die with "out of memory", so lift the soft limit.
                 cmd = ["sh", "-c", LIFT_MEMORY_LIMIT, "sh"] + cmd
-                proc = subprocess.run(cmd, input=None if as_argument else prompt,
-                                      stdin=subprocess.DEVNULL if as_argument else None,
-                                      capture_output=True, text=True,
-                                      timeout=self.timeout, cwd=cwd, check=False)
+                with command_slot():
+                    proc = subprocess.run(cmd, input=None if as_argument else prompt,
+                                          stdin=subprocess.DEVNULL if as_argument else None,
+                                          capture_output=True, text=True,
+                                          timeout=self.timeout, cwd=cwd, check=False)
         except FileNotFoundError:
             raise ProviderError("command not found: %s" % cmd[0])
         except subprocess.TimeoutExpired:
