@@ -5,6 +5,8 @@ import base64
 import json
 import os
 import shlex
+import tempfile
+import time
 import sys
 from unittest.mock import patch
 
@@ -116,18 +118,32 @@ class TestCommandDocuments(BaseCase):
             self.read(dummy("{images}"), [file("application/pdf", make_pdf(1))])
         self.assertEqual(seen, [(5, 150)])
 
+    def test_a_timeout_ends_the_helpers_of_the_tool_too(self):
+        # the tool starts a helper of its own and both hang: neither may survive the timeout
+        with tempfile.TemporaryDirectory() as tmp:
+            pidfile = os.path.join(tmp, "helper.pid")
+            cmd = ["sh", "-c", "sleep 60 & echo $! > %s; sleep 60" % shlex.quote(pidfile)]
+            with self.assertRaises(chat.subprocess.TimeoutExpired):
+                chat._run_group(cmd, None, 1, tmp)
+            helper = int(open(pidfile).read())
+        for _ in range(30):
+            if not os.path.exists("/proc/%d" % helper):
+                break
+            time.sleep(0.1)
+        self.assertFalse(os.path.exists("/proc/%d" % helper), "the helper process is still running")
+
     def test_the_temporary_directory_is_removed(self):
         out = self.read(dummy("{images}"), [file("image/png", PNG)])
         self.assertFalse(os.path.exists(out["cwd"]))
         self.assertFalse(os.path.exists(out["argv"][0]))
         # also when the tool fails
         dirs = []
-        real = chat.subprocess.run
+        real = chat._run_group
 
-        def run(cmd, **kw):
-            dirs.append(kw["cwd"])
-            return real(cmd, **kw)
-        with patch.object(chat.subprocess, "run", run):
+        def run(cmd, text_input, timeout, cwd):
+            dirs.append(cwd)
+            return real(cmd, text_input, timeout, cwd)
+        with patch.object(chat, "_run_group", run):
             with self.assertRaises(ProviderError):
                 self.provider(shlex.join([sys.executable, "-c", "raise SystemExit(2)", "{images}"])
                               ).read_document("s", "u", [file("image/png", PNG)])

@@ -9,6 +9,7 @@ import os
 import re
 import shlex
 import shutil
+import signal
 import subprocess
 import tempfile
 import time
@@ -26,6 +27,33 @@ from .http import ProviderError, ProviderUnavailable, call
 # dozen of them at once and the kernel kills the Odoo service for lack of memory.
 COMMAND_SLOTS = max(1, int(os.environ.get("AI_TRANSLATION_COMMAND_SLOTS") or 2))
 SLOT_DIR = os.path.join(tempfile.gettempdir(), "ai_translation_consensus_slots")
+
+
+def _run_group(cmd, text_input, timeout, cwd):
+    """``subprocess.run`` in a process group of its own; a timeout ends the whole group."""
+    proc = subprocess.Popen(cmd, stdin=subprocess.PIPE if text_input is not None else subprocess.DEVNULL,
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, cwd=cwd,
+                            start_new_session=True)
+    try:
+        out, err = proc.communicate(text_input, timeout=timeout)
+    except subprocess.TimeoutExpired:
+        _kill_group(proc.pid, signal.SIGTERM)
+        try:
+            proc.communicate(timeout=3)
+        except subprocess.TimeoutExpired:
+            _kill_group(proc.pid, signal.SIGKILL)
+            proc.communicate()
+        raise
+    finally:
+        _kill_group(proc.pid, signal.SIGKILL)         # helpers that outlived the main process
+    return subprocess.CompletedProcess(cmd, proc.returncode, out, err)
+
+
+def _kill_group(pgid, sig):
+    try:
+        os.killpg(pgid, sig)
+    except (ProcessLookupError, PermissionError):
+        pass
 
 
 @contextlib.contextmanager
@@ -386,11 +414,14 @@ class LocalCommand(ChatProvider):
                 # Odoo workers cap the address space (limit_memory_hard); Go based tools such as agy
                 # reserve far more virtual memory and die with "out of memory", so lift the soft limit.
                 cmd = ["sh", "-c", LIFT_MEMORY_LIMIT, "sh"] + cmd
+                # CLI tools start helpers of their own (the gemini wrapper spawns a second node
+                # process). Killing only the direct child on a timeout left those running for
+                # minutes with more than 1 GB each. So: own process group, killed as a whole; and
+                # GNU timeout as a watchdog that still ends the group when this worker itself dies.
+                if shutil.which("timeout"):
+                    cmd = ["timeout", "--kill-after=5", str(int(self.timeout) + 15)] + cmd
                 with command_slot():
-                    proc = subprocess.run(cmd, input=None if as_argument else prompt,
-                                          stdin=subprocess.DEVNULL if as_argument else None,
-                                          capture_output=True, text=True,
-                                          timeout=self.timeout, cwd=cwd, check=False)
+                    proc = _run_group(cmd, None if as_argument else prompt, self.timeout, cwd)
         except FileNotFoundError:
             raise ProviderError("command not found: %s" % cmd[0])
         except subprocess.TimeoutExpired:
